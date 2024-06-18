@@ -15,6 +15,10 @@ env:
   RELEASE_PREFIX: qualcommax-6.x-nss-wifi
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
+  ARGON_THEME_REPOSITORY: jerrykuku/luci-theme-argon
+  ARGON_THEME_BRANCH: master
+  ARGON_CONFIG_REPOSITORY: jerrykuku/luci-app-argon-config
+  ARGON_CONFIG_BRANCH: master
 
 jobs:
   check_commits:
@@ -63,6 +67,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: "custom_repo"
+      - name: Checkout Argon theme repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.ARGON_THEME_REPOSITORY }}
+          ref: ${{ env.ARGON_THEME_BRANCH }}
+          path: "openwrt/package/luci-theme-argon"
+      - name: Checkout Argon config repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.ARGON_CONFIG_REPOSITORY }}
+          ref: ${{ env.ARGON_CONFIG_BRANCH }}
+          path: "openwrt/package/luci-app-argon-config"
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
