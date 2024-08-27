@@ -15,6 +15,7 @@ env:
   RELEASE_PREFIX: qualcommax-6.x-nss-wifi
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
+  TUN2SOCKS_PACKAGES_REPOSITORY: alryaz/openwrt-tun2socks
   EXTRA_PACKAGES_REPOSITORY: kiddin9/openwrt-packages
 
 jobs:
@@ -70,11 +71,11 @@ jobs:
           repository: ${{ env.EXTRA_PACKAGES_REPOSITORY }}
           path: "extra_packages"
           sparse-checkout: |
-            tun2socks
             luci-app-tcpdump
-      - name: Add extra packages feed
+      - name: Add extra package feeds
         run: |
           echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
+          echo "src-git tun2socks ${{ env.TUN2SOCKS_PACKAGES_REPOSITORY }}" >> feeds.conf.default
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
