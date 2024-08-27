@@ -75,7 +75,7 @@ jobs:
       - name: Add extra package feeds
         run: |
           echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
-          echo "src-git tun2socks ${{ env.TUN2SOCKS_PACKAGES_REPOSITORY }}" >> feeds.conf.default
+          echo "src-git tun2socks https://github.com/${{ env.TUN2SOCKS_PACKAGES_REPOSITORY }}.git" >> feeds.conf.default
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
