@@ -76,6 +76,8 @@ jobs:
         run: |
           echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
           echo "src-git tun2socks https://github.com/${{ env.TUN2SOCKS_PACKAGES_REPOSITORY }}.git" >> feeds.conf.default
+          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
+          echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
