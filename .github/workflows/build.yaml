@@ -86,16 +86,19 @@ jobs:
         run: |
           mv custom_repo/${{ env.CONFIG_FILE }} .config
           make defconfig
-      - name: Cleanup distfeeds.conf after boot
-        run: |
-          grep -v "git.openwrt.org" /tmp/feeds.conf.default | grep -v "^#" | while read -r line ; do
-            feed=$(echo $line | cut -d' ' -f2)
-            echo "sed -i '/ openwrt_$feed /d' /etc/opkg/distfeeds.conf"
-          done > files/etc/uci-defaults/999-cleanup-distfeeds
       - name: Include custom files
         run: |
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           mv custom_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }}
+      - name: Cleanup distfeeds.conf after boot
+        run: |
+          defaults_dir="${{ env.CUSTOM_FILES_PATH }}/etc/uci-defaults"
+          grep -v "git.openwrt.org" /tmp/feeds.conf.default | grep -v "^#" | while read -r line ; do
+            feed=$(echo $line | cut -d' ' -f2)
+            # Create directory here to avoid creating it if the iteration is empty
+            mkdir -p "${defaults_dir}"
+            echo "sed -i '/ openwrt_$feed /d' /etc/opkg/distfeeds.conf" >> "${defaults_dir}/000-cleanup-distfeeds"
+          done
       - name: Download dependencies
         run: make download V=sc -j$(($(nproc)+1))
       - name: Build the firmware image
