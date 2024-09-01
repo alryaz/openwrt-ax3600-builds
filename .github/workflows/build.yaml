@@ -85,15 +85,15 @@ jobs:
       - name: Configure firmware image
         run: |
           mv custom_repo/${{ env.CONFIG_FILE }} .config
-          make defconfig -j$(nproc)
+          make defconfig
       - name: Include custom files
         run: |
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           mv custom_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }}
       - name: Download dependencies
-        run: make download V=sc -j$(nproc)
+        run: make download V=sc -j$(($(nproc)+1))
       - name: Build the firmware image
-        run: make world V=sc -j$(nproc)
+        run: make world V=sc -j$(($(nproc)+1)) || make -j1 || make -j1 V=s
       - name: Package output
         run: tar -cvf ipq807xx-images.tar bin/targets/qualcommax/ipq807x
       - name: Upload artifacts
@@ -121,11 +121,13 @@ jobs:
         with:
           files: bin/targets/qualcommax/ipq807x/*
           tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
-          name: Updated prebuilt images ${{ env.RELEASE_DATE }}
+          name: Release ${{ env.RELEASE_DATE }}
           body: |
-            Updated prebuilt images for ${{ env.RELEASE_DATE }}
-            Build Commit: ${{ needs.check_commits.outputs.latest_commit_sha }}
-            NSS Packages Commit: ${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
+            # Updated prebuilt images for ${{ env.RELEASE_DATE }}
+            - Build Commit: ${{ needs.check_commits.outputs.latest_commit_sha }}
+            - NSS Packages Commit: ${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
+
+            # Package list
       - name: Clean up old releases
         uses: dev-drprasad/delete-older-releases@master
         with:
