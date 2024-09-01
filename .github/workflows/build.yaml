@@ -86,6 +86,12 @@ jobs:
         run: |
           mv custom_repo/${{ env.CONFIG_FILE }} .config
           make defconfig
+      - name: Cleanup distfeeds.conf after boot
+        run: |
+          grep -v "git.openwrt.org" /tmp/feeds.conf.default | grep -v "^#" | while read -r line ; do
+            feed=$(echo $line | cut -d' ' -f2)
+            echo "sed -i '/ openwrt_$feed /d' /etc/opkg/distfeeds.conf"
+          done > files/etc/uci-defaults/999-cleanup-distfeeds
       - name: Include custom files
         run: |
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
