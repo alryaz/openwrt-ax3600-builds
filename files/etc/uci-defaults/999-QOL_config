@@ -4,19 +4,15 @@ set pbuf.opt.auto_scale='on'
 set pbuf.opt.memory_profile='1gb'
 set pbuf.opt.scaling_governor='performance'
 
-# Wireless default settings for radio0
-set wireless.default_radio0.wnm_sleep_mode='1'
-set wireless.default_radio0.ieee80211k='1'
-set wireless.default_radio0.time_advertisement='2'
-set wireless.default_radio0.bss_transition='1'
-set wireless.default_radio0.proxy_arp='1'
+# Wireless default settings for radio0 (QCA9887 ac/b/g/n)
+set wireless.default_radio0.disabled='1'
 
 # Wireless radio0 specific settings
-set wireless.radio0.htmode='HE160'
+set wireless.radio0.htmode='HE40'
 set wireless.radio0.channel='auto'
 set wireless.radio0.country='PA'
 
-# Wireless default settings for radio1
+# Wireless default settings for radio1 (IPQ8074 ac/ax/n)
 set wireless.default_radio1.wnm_sleep_mode='1'
 set wireless.default_radio1.ieee80211k='1'
 set wireless.default_radio1.time_advertisement='2'
@@ -24,9 +20,21 @@ set wireless.default_radio1.bss_transition='1'
 set wireless.default_radio1.proxy_arp='1'
 
 # Wireless radio1 specific settings
-set wireless.radio1.htmode='HE40'
+set wireless.radio1.htmode='HE160'
 set wireless.radio1.channel='auto'
 set wireless.radio1.country='PA'
+
+# Wireless default settings for radio2 (IPQ8074 ax/b/g/n)
+set wireless.default_radio2.wnm_sleep_mode='1'
+set wireless.default_radio2.ieee80211k='1'
+set wireless.default_radio2.time_advertisement='2'
+set wireless.default_radio2.bss_transition='1'
+set wireless.default_radio2.proxy_arp='1'
+
+# Wireless radio2 specific settings
+set wireless.radio2.htmode='HE40'
+set wireless.radio2.channel='auto'
+set wireless.radio2.country='PA'
 
 # Firewall settings
 set firewall.@zone[1].input='DROP'
