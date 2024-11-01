@@ -10,13 +10,10 @@ env:
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
   REMOTE_BRANCH: qualcommax-6.x-nss-wifi
   CONFIG_FILE: ax3600.config
-  NSS_STATUS_PATCH: 999-add-nss-load-to-status.patch
   CUSTOM_FILES_PATH: files/
   RELEASE_PREFIX: qualcommax-6.x-nss-wifi
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
-  TUN2SOCKS_PACKAGES_REPOSITORY: alryaz/openwrt-tun2socks
-  EXTRA_PACKAGES_REPOSITORY: kiddin9/openwrt-packages
 
 jobs:
   check_commits:
@@ -53,18 +50,22 @@ jobs:
         run: |
           sudo apt update
           sudo apt full-upgrade -y
-          sudo apt install -y build-essential clang flex bison g++ gawk \
-          gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
-          python3-setuptools rsync swig unzip zlib1g-dev file wget
+          sudo apt install -y \
+            build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+            python3-setuptools rsync swig unzip zlib1g-dev file wget
+
       - name: Checkout remote repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
+
       - name: Checkout current repository
         uses: actions/checkout@v4
         with:
           path: "custom_repo"
+
       - name: Checkout extra packages
         uses: actions/checkout@v4
         with:
@@ -72,44 +73,41 @@ jobs:
           path: "extra_packages"
           sparse-checkout: |
             luci-app-tcpdump
+
       - name: Add extra package feeds
         run: |
           echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
-          echo "src-git tun2socks https://github.com/${{ env.TUN2SOCKS_PACKAGES_REPOSITORY }}.git" >> feeds.conf.default
           echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
           echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
       - name: Configure firmware image
         run: |
           mv custom_repo/${{ env.CONFIG_FILE }} .config
-          make defconfig
+          make defconfig -j$(nproc)
+
+      - name: Append CONFIG_RELR=y to target/linux/qualcommax/config-6.6
+        run: echo "CONFIG_RELR=y" >> target/linux/qualcommax/config-6.6
+
       - name: Include custom files
         run: |
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           mv custom_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }}
-      - name: Cleanup distfeeds.conf after boot
-        run: |
-          defaults_dir="${{ env.CUSTOM_FILES_PATH }}/etc/uci-defaults"
-          grep -v "git.openwrt.org" /tmp/feeds.conf.default | grep -v "^#" | while read -r line ; do
-            feed=$(echo $line | cut -d' ' -f2)
-            # Create directory here to avoid creating it if the iteration is empty
-            mkdir -p "${defaults_dir}"
-            echo "sed -i '/ openwrt_$feed /d' /etc/opkg/distfeeds.conf" >> "${defaults_dir}/000-cleanup-distfeeds"
-          done
+
       - name: Download dependencies
         run: make download V=sc -j$(($(nproc)+1))
+
       - name: Build the firmware image
         run: make world V=sc -j$(($(nproc)+1)) || make -j1 || make -j1 V=s
-      - name: Package output
-        run: tar -cvf ipq807xx-images.tar bin/targets/qualcommax/ipq807x
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ipq807x-images
-          path: ipq807xx-images.tar
+          path: bin/targets/qualcommax/ipq807x
 
   release:
     name: Create release
@@ -121,10 +119,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ipq807x-images
-      - name: Extract artifacts
-        run: tar xf ipq807xx-images.tar
+          path: firmware
+  
       - name: Get current date
         run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
+
       - name: Create release
         uses: softprops/action-gh-release@master
         with:
@@ -136,7 +135,6 @@ jobs:
             - Build Commit: ${{ needs.check_commits.outputs.latest_commit_sha }}
             - NSS Packages Commit: ${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
 
-            # Package list
       - name: Clean up old releases
         uses: dev-drprasad/delete-older-releases@master
         with:
