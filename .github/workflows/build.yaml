@@ -2,9 +2,9 @@ name: Build OpenWrt for specific target and release
 
 on:
   workflow_dispatch:
-  push:
-  schedule:
-    - cron: "0 */2 * * *"
+  # push:
+  # schedule:
+  #   - cron: "0 */2 * * *"
 
 env:
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
@@ -16,53 +16,8 @@ env:
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
 
 jobs:
-  check_commits:
-    name: Check for new commits
-    runs-on: ubuntu-latest
-    outputs:
-      new_commits: ${{ steps.check_commits.outputs.new_commits }}
-      latest_commit_sha: ${{ steps.check_commits.outputs.latest_commit_sha }}
-      nss_packages_repo_new_commits: ${{ steps.check_commits.outputs.nss_packages_repo_new_commits }}
-      nss_packages_repo_latest_commit_sha: ${{ steps.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
-    steps:
-      - name: Check for new commits in both repositories
-        id: check_commits
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Fetch latest commits and release info
-          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
-          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}" --jq .sha)
-
-          # Try to get release body, handle case where it might not exist
-          release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body || echo "")
-
-          # Debug output
-          echo "Latest upstream commit: $latest_sha"
-          echo "Latest packages commit: $packages_sha"
-          if [ -n "$release_body" ]; then
-            echo "Release body contains latest base commit: $(echo "$release_body" | grep -q "$latest_sha" && echo "Yes" || echo "No")"
-            echo "Release body contains latest packages commit: $(echo "$release_body" | grep -q "$packages_sha" && echo "Yes" || echo "No")"
-          else
-            echo "No previous release body found"
-          fi
-
-          # Set outputs - proceed if release body is empty
-          {
-            echo "latest_commit_sha=$latest_sha"
-            echo "nss_packages_repo_latest_commit_sha=$packages_sha"
-            echo "new_commits=true"
-            echo "nss_packages_repo_new_commits=true"
-            if [ -n "$release_body" ]; then
-              echo "new_commits=$(if [[ "$release_body" != *"$latest_sha"* ]]; then echo true; else echo false; fi)"
-              echo "nss_packages_repo_new_commits=$(if [[ "$release_body" != *"$packages_sha"* ]]; then echo true; else echo false; fi)"
-            fi
-          } >> "$GITHUB_OUTPUT"
-
   build:
-    name: Build OpenWrt
-    needs: check_commits
-    if: github.event_name == 'workflow_dispatch' || needs.check_commits.outputs.new_commits == 'true' || needs.check_commits.outputs.nss_packages_repo_new_commits == 'true'
+    name: Test cloning mechanisms
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
@@ -74,7 +29,7 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-setuptools rsync swig unzip zlib1g-dev file wget
 
-      - name: Checkout remote repository
+      - name: Test 1. Root dir
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
@@ -85,7 +40,7 @@ jobs:
           ./scripts/getver.sh
           ls -alh
 
-      - name: Checkout remote repository into other
+      - name: Test 2. Subdir
         uses: actions/checkout@v4
         with:
           repository: ${{ env.REMOTE_REPOSITORY }}
@@ -94,121 +49,24 @@ jobs:
 
       - name: Check .git and else
         run: |
-          cd orig_repo_other
+          cd "${{ github.workspace }}/orig_repo_other"
           ./scripts/getver.sh
           ls -alh
 
-      - name: Checkout current repository
-        uses: actions/checkout@v4
-        with:
-          path: "custom_repo"
+      - name: Test 3. Separate clone, single branch
+        run: git clone https://github.com/${{ env.REMOTE_REPOSITORY }}.git "${{ github.workspace }}/single_branch" --branch "${{ env.RELEASE_PREFIX }}" --single-branch 
 
-      - name: Checkout extra packages
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.EXTRA_PACKAGES_REPOSITORY }}
-          path: "extra_packages"
-          sparse-checkout: |
-            luci-app-tcpdump
-
-      - name: Add extra package feeds
+      - name: Check .git and else
         run: |
-          echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
-          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
-          echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
+          cd "${{ github.workspace }}/single_branch"
+          ./scripts/getver.sh
+          ls -alh
 
-      - name: Update and install feeds
+      - name: Test 4. Separate clone, single branch
+        run: git clone https://github.com/${{ env.REMOTE_REPOSITORY }}.git "${{ github.workspace }}/multip_branch" --branch "${{ env.RELEASE_PREFIX }}"
+
+      - name: Check .git and else
         run: |
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-      - name: Configure firmware image
-        run: |
-          mv custom_repo/${{ env.CONFIG_FILE }} .config
-          make defconfig -j$(nproc)
-
-      - name: Include custom files
-        run: |
-          mkdir -p ${{ env.CUSTOM_FILES_PATH }}
-          mv custom_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }}
-
-      - name: Download xray domain lists
-        run: |
-          dat_path="${{ env.CUSTOM_FILES_PATH }}/usr/share/xray"
-          mkdir -p "$dat_path"
-          wget -q -r https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
-            -O"$dat_path/domain-list-community.dat"
-          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geosite.dat \
-            -O"$dat_path/refilter-geosite.dat"
-          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geoip.dat \
-            -O"$dat_path/refilter-geoip.dat"
-          wget -q -r https://github.com/1andrevich/antifilter-domain/releases/latest/download/geosite.dat \
-            -O"$dat_path/antifilter-geosite.dat"
-          wget -q -r https://github.com/1andrevich/antifilter-geoip/releases/latest/download/geoip.dat \
-            -O"$dat_path/antifilter-geoip.dat"
-
-      - name: Download dependencies
-        run: make download V=sc -j$(($(nproc)+1))
-
-      - name: Build the firmware image
-        run: make world V=sc -j$(($(nproc)+1)) || make -j1 || make -j1 V=s
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ipq807x-images
-          path: bin/targets/qualcommax/ipq807x
-
-  release:
-    name: Create release
-    needs: [check_commits, build]
-    if: needs.build.result == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ipq807x-images
-          path: firmware
-  
-      - name: Get current date
-        run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
-
-      - name: Create release
-        uses: softprops/action-gh-release@master
-        with:
-          files: firmware/*
-          tag_name: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
-          name: 🚀 OpenWrt Build Release ${{ env.RELEASE_DATE }}
-          body: |
-            ## 📦 OpenWrt Automated Build Release
-
-            **Build Date:** ${{ env.RELEASE_DATE }}
-
-            ### 🔄 Main Repository
-            **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
-            **Branch:** `${{ env.REMOTE_BRANCH }}`
-            **Commit:** `${{ needs.check_commits.outputs.latest_commit_sha }}`
-
-            ### 📦 NSS Packages
-            **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
-            **Branch:** `${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}`
-            **Commit:** `${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}`
-
-            ### 📝 Build Information
-            - **Target:** [Xiaomi Mi AIoT Router AX3600](https://openwrt.org/toh/xiaomi/ax3600)
-            - **Configuration:** [`${{ env.CONFIG_FILE }}`](${{ env.CONFIG_FILE }})
-
-            ### 📋 Notes
-            - Automated build triggered by ${{ github.event_name }}
-            - Previous releases are automatically cleaned up (keeping latest 2)
-            ---
-            _Generated by GitHub Actions 🤖_
-
-      - name: Clean up old releases
-        uses: dev-drprasad/delete-older-releases@master
-        with:
-          keep_latest: 2
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cd "${{ github.workspace }}/multip_branch"
+          ./scripts/getver.sh
+          ls -alh
