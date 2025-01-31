@@ -118,15 +118,15 @@ jobs:
         run: |
           dat_path="${{ env.CUSTOM_FILES_PATH }}/usr/share/xray"
           mkdir -p "$dat_path"
-          wget -q -r https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
+          wget -q https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
             -O"$dat_path/domain-list-community.dat"
-          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geosite.dat \
+          wget -q https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geosite.dat \
             -O"$dat_path/refilter-geosite.dat"
-          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geoip.dat \
+          wget -q https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geoip.dat \
             -O"$dat_path/refilter-geoip.dat"
-          wget -q -r https://github.com/1andrevich/antifilter-domain/releases/latest/download/geosite.dat \
+          wget -q https://github.com/1andrevich/antifilter-domain/releases/latest/download/geosite.dat \
             -O"$dat_path/antifilter-geosite.dat"
-          wget -q -r https://github.com/1andrevich/antifilter-geoip/releases/latest/download/geoip.dat \
+          wget -q https://github.com/1andrevich/antifilter-geoip/releases/latest/download/geoip.dat \
             -O"$dat_path/antifilter-geoip.dat"
 
       - name: Download dependencies
