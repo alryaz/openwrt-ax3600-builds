@@ -98,6 +98,7 @@ jobs:
           echo "src-link extra_packages $(pwd)/extra_packages" >> feeds.conf.default
           echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
           echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
+
       - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
@@ -112,6 +113,21 @@ jobs:
         run: |
           mkdir -p ${{ env.CUSTOM_FILES_PATH }}
           mv custom_repo/${{ env.CUSTOM_FILES_PATH }}* ${{ env.CUSTOM_FILES_PATH }}
+
+      - name: Download xray domain lists
+        run: |
+          dat_path="${{ env.CUSTOM_FILES_PATH }}/usr/share/xray"
+          mkdir -p "$dat_path"
+          wget -q -r https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
+            -O"$dat_path/domain-list-community.dat"
+          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geosite.dat \
+            -O"$dat_path/refilter-geosite.dat"
+          wget -q -r https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geoip.dat \
+            -O"$dat_path/refilter-geoip.dat"
+          wget -q -r https://github.com/1andrevich/antifilter-domain/releases/latest/download/geosite.dat \
+            -O"$dat_path/antifilter-geosite.dat"
+          wget -q -r https://github.com/1andrevich/antifilter-geoip/releases/latest/download/geoip.dat \
+            -O"$dat_path/antifilter-geoip.dat"
 
       - name: Download dependencies
         run: make download V=sc -j$(($(nproc)+1))
