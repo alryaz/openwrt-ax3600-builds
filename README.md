@@ -11,6 +11,7 @@ This project automates the process of building OpenWrt firmware images for the Q
 - Additional useful packages. Refer to the [`ax3600.config`](ax3600.config)
 - Full NSS (Network Subsystem) support 
 - Quality-of-life enhancements through UCI configuration
+- Rich stack of VPN technologies pre-packages (uninterrupted sysupgrade possible!)
 
 ## Build Process
 
@@ -20,7 +21,7 @@ The build process is automated using GitHub Actions and consists of the followin
 2. Install the necessary dependencies
 3. Checkout the [remote repository](https://github.com/qosmio/openwrt-ipq) and the current repository
 4. Update and install the OpenWrt feeds
-5. Apply the [NSS status patch](patches/999-add-nss-load-to-status.patch) by [qosmio](https://github.com/qosmio)
+5. ~~Apply the [NSS status patch](patches/999-add-nss-load-to-status.patch) by [qosmio](https://github.com/qosmio)~~
 6. Configure the firmware image using the provided configuration file
 7. Include SSH hardening configuration and QOL-Enhancements
 8. Build the firmware image
