@@ -3,6 +3,11 @@ name: Build OpenWrt for specific target and release
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'main'
+    paths:
+      - '/ax3600.config'
+      - '/files'
   schedule:
     - cron: "0 */2 * * *"
 
