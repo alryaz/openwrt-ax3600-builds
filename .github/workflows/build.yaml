@@ -80,6 +80,24 @@ jobs:
           repository: ${{ env.REMOTE_REPOSITORY }}
           ref: ${{ env.REMOTE_BRANCH }}
 
+      - name: Check .git and else
+        run: |
+          ./scripts/getver.sh
+          ls -alh
+
+      - name: Checkout remote repository into other
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REMOTE_REPOSITORY }}
+          ref: ${{ env.REMOTE_BRANCH }}
+          path: orig_repo_other
+
+      - name: Check .git and else
+        run: |
+          cd orig_repo_other
+          ./scripts/getver.sh
+          ls -alh
+
       - name: Checkout current repository
         uses: actions/checkout@v4
         with:
