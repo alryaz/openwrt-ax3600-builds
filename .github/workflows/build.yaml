@@ -83,6 +83,10 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-setuptools rsync swig unzip zlib1g-dev file wget
 
+        # This intentionally uses the run command instead of a determined checkout
+        # action because the checkout action severs reflog, causing the release
+        # number generation script of OpenWRT to fail and return '0' instead of
+        # actual number, resulting in 'r0' appended to the release version.
       - name: Checkout remote repository
         run: |
           git clone "https://github.com/${{ env.REMOTE_REPOSITORY }}.git" \
