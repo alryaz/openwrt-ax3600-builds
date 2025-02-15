@@ -19,6 +19,12 @@ env:
   RELEASE_PREFIX: main-nss
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
+  XRAY_DATA_SOURCES: |
+    domain-list-community:v2fly/domain-list-community/dlc.dat
+    refilter-geosite:1andrevich/Re-filter-lists/geosite.dat
+    refilter-geoip:1andrevich/Re-filter-lists/geoip.dat
+    antifilter-geosite:1andrevich/antifilter-domain/geosite.dat
+    antifilter-geoip:1andrevich/antifilter-geoip/geoip.dat
 
 jobs:
   check_commits:
@@ -82,14 +88,6 @@ jobs:
         with:
           path: "custom_repo"
 
-      - name: Checkout extra packages
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.EXTRA_PACKAGES_REPOSITORY }}
-          path: "extra_packages"
-          sparse-checkout: |
-            luci-app-tcpdump
-
       - name: Add extra package feeds
         run: |
           echo "src-link extra_packages ${{ github.workspace }}/extra_packages" >> feeds.conf.default
@@ -116,25 +114,75 @@ jobs:
             "build_repo/${{ env.CUSTOM_FILES_PATH }}/"
 
       - name: Download xray domain lists
+        if: ${{ env.XRAY_DATA_SOURCES != '' }}
         run: |
           dat_path="build_repo/${{ env.CUSTOM_FILES_PATH }}/usr/share/xray"
-          mkdir -p "${dat_path}"
-          wget -q https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat \
-            -O"${dat_path}/domain-list-community.dat"
-          wget -q https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geosite.dat \
-            -O"${dat_path}/refilter-geosite.dat"
-          wget -q https://github.com/1andrevich/Re-filter-lists/releases/latest/download/geoip.dat \
-            -O"${dat_path}/refilter-geoip.dat"
-          wget -q https://github.com/1andrevich/antifilter-domain/releases/latest/download/geosite.dat \
-            -O"${dat_path}/antifilter-geosite.dat"
-          wget -q https://github.com/1andrevich/antifilter-geoip/releases/latest/download/geoip.dat \
-            -O"${dat_path}/antifilter-geoip.dat"
+
+          # Read the XRAY_DATA_SOURCES environment variable
+          while IFS= read -r entry; do
+              # Trim leading and trailing whitespace
+              entry=$(echo "$entry" | xargs)
+
+              # Skip empty lines
+              if [[ -z "$entry" ]]; then
+                  continue
+              fi
+
+              echo "::group::Processing \"$entry\""
+
+              # Trim whitespace from dest and url
+              dest=$(echo "${entry%%:*}" | xargs)
+              if [[ -z "$dest" ]]; then
+                echo "Destination identifier is empty!" >&2
+                echo "::endgroup::"
+                exit 1
+              fi
+
+              url=$(echo "${entry#*:}" | xargs)
+              if [[ -z "$url" ]]; then
+                echo "URL for \"$dest\" is empty!" >&2
+                echo "::endgroup::"
+                exit 1
+              fi
+
+              # If the URL does not contain "://", treat it as a GitHub reference
+              if [[ "$url" != *"://"* ]]; then
+                  IFS='/' read -r -a parts <<< "$url"
+
+                  if [[ ${#parts[@]} -ne 3 ]]; then
+                    echo "Invalid GitHub reference format: $url" >&2
+                    echo "::endgroup::"
+                    exit 1
+                  fi
+                  
+                  url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
+              fi
+
+              # Download the file using wget
+              wget "$url" -O"${dat_path}/${dest}.dat"
+
+              # Check if the download was successful
+              if [[ $? -ne 0 ]]; then
+                  echo "Failed to download ${dest}.dat." >&2
+                  echo "::endgroup::"
+                  exit 1
+              fi
+
+              echo "Downloaded ${dest}.dat successfully."
+          done <<< "$XRAY_DATA_SOURCES"
 
       - name: Download dependencies
-        run: cd build_repo; make download V=sc -j$(($(nproc)+1))
+        run: cd build_repo && make download V=sc -j$(($(nproc)+1))
 
       - name: Build the firmware image
-        run: cd build_repo; make world V=sc -j$(($(nproc)+1)) || make -j1 || make -j1 V=s
+        id: build_multiple_cores
+        continue-on-error: true
+        run: cd build_repo && make world V=sc -j$(($(nproc)+1))
+
+      - name: Build the firmware image
+        if: ${{ failure() && steps.build_multiple_cores.conclusion == 'failure' }}
+        id: build_single_core
+        run: cd build_repo && make world V=sc -j1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
