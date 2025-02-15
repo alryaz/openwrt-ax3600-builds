@@ -197,11 +197,10 @@ jobs:
 
       - name: Build the firmware image
         id: build_multiple_cores
-        continue-on-error: true
         run: exit 1 && cd build_repo && make world V=sc -j$(($(nproc)+1))
 
       - name: Build the firmware image
-        if: ${{ steps.build_multiple_cores.conclusion == 'failure' }}
+        if: failure() && steps.build_multiple_cores.conclusion == 'failure'
         id: build_single_core
         run: cd build_repo && make world V=sc -j1
 
