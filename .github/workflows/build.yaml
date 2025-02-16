@@ -40,7 +40,7 @@ env:
 jobs:
   check_commits:
     name: Check for new commits
-    if: github.event_name != 'workflow_dispatch' || inputs.repository_ref == 'main'
+    if: ((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main'
     runs-on: ubuntu-latest
     outputs:
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
