@@ -195,11 +195,11 @@ jobs:
       - name: Download dependencies
         run: cd build_repo && make download V=sc -j$(($(nproc)+1))
 
-      - name: Build the firmware image
+      - name: Build the firmware image (multicore, verbose)
         id: build_multiple_cores
         run: cd build_repo && make world V=sc -j$(($(nproc)+1))
 
-      - name: Build the firmware image
+      - name: Build the firmware image (single core, verbose)
         if: failure() && steps.build_multiple_cores.conclusion == 'failure'
         id: build_single_core
         run: cd build_repo && make world V=sc -j1
