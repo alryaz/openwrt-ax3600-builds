@@ -1,6 +1,4 @@
 uci -q batch << EOI
-# Set pbuf options
-set pbuf.opt.memory_profile='1gb'
 
 # Wireless default settings for radio0 (QCA9887 ac/b/g/n)
 set wireless.default_radio0.disabled='1'
