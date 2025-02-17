@@ -68,8 +68,9 @@ jobs:
               echo "new_commits=true"
               echo "nss_packages_repo_new_commits=true"
             else
-              echo "new_commits=$([ "$release_body" != *"$latest_sha"* ] && echo true || echo false)"
-              echo "nss_packages_repo_new_commits=$([ "$release_body" != *"$packages_sha"* ] && echo true || echo false)"
+              check_sha() { echo $release_body | grep -q "$1" && echo false || echo true; }
+              echo "new_commits=$(check_sha $latest_sha)"
+              echo "nss_packages_repo_new_commits=$(check_sha $packages_sha)"
             fi
           } >> $GITHUB_OUTPUT
 
