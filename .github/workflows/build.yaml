@@ -40,7 +40,8 @@ env:
 jobs:
   check_commits:
     name: Check for new commits
-    if: ((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main'
+    if: |
+      ((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main'
     runs-on: ubuntu-latest
     outputs:
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
@@ -232,7 +233,9 @@ jobs:
   release:
     name: Create release
     needs: [check_commits, build]
-    if: ${{ (needs.build.result == 'success') && (((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main') }}
+    if: |
+      (needs.build.result == 'success') &&
+      (((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -258,12 +261,12 @@ jobs:
             ### 🔄 Main Repository
             **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
             **Branch:** `${{ env.REMOTE_BRANCH }}`
-            **Commit:** `${{ needs.check_commits.outputs.latest_commit_sha }}`
+            **Commit:** `[${{ needs.check_commits.outputs.latest_commit_sha }}](https://github.com/${{ env.REMOTE_REPOSITORY }}/commit/${{ needs.check_commits.outputs.latest_commit_sha }})`
 
             ### 📦 NSS Packages
             **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
             **Branch:** `${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}`
-            **Commit:** `${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}`
+            **Commit:** `[${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }}/commit/${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }})`
 
             ### 📝 Build Information
             - **Target:** [Xiaomi Mi AIoT Router AX3600](https://openwrt.org/toh/xiaomi/ax3600)
