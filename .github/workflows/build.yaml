@@ -119,6 +119,19 @@ jobs:
           echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
           echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
 
+      - name: Add custom patches
+        run: |
+          if [ "$(ls custom_repo/patches)" ]; then
+            mv custom_repo/patches/* ./
+            for patch in *.patch; do
+              git apply --verbose "$patch"
+              echo "=== Diff after applying $patch ==="
+              git diff HEAD
+            done
+            echo "Changed files after patch application:"
+            git status
+          fi
+
       - name: Update and install feeds
         run: |
           cd build_repo
