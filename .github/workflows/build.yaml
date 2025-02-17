@@ -81,11 +81,11 @@ jobs:
     if: |
       always() &&
       (
-        (needs.check_commits.result == 'skipped') ||
         (needs.check_commits.result == 'success') && (
           (needs.check_commits.outputs.new_commits == 'true') ||
           (needs.check_commits.outputs.nss_packages_repo_new_commits == 'true')
-        )
+        ) ||
+        (github.event_name == 'workflow_dispatch')
       )
     runs-on: ubuntu-24.04
     steps:
