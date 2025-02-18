@@ -1,0 +1,19 @@
+if ! (id hass 2>/dev/null); then
+    # Create default user in registry
+    echo "hass:x:10001:10001:hass:/var:/bin/false" >> /etc/passwd
+    echo "hass:x:0:0:99999:7:::" >> /etc/shadow
+
+    # Lock user until password had been changed
+    passwd -l hass
+fi
+
+if ! (uci show rpcd | grep -q ".username='hass'"); then
+    uci -q batch << EOI
+    add rpcd login
+    set rpcd.@login[-1].username='hass'
+    set rpcd.@login[-1].password='\$p\$hass'
+    add_list rpcd.@login[-1].read='hass'
+    add_list rpcd.@login[-1].read='unauthenticated'
+    add_list rpcd.@login[-1].write='hass'
+EOI
+fi
