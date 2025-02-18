@@ -35,6 +35,7 @@ env:
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
   RELEASE_PREFIX: main-nss
+  XRAY_DOWNLOAD_CRON: "0 */2 * * *"
   XRAY_DATA_SOURCES: |
     domain-list-community:v2fly/domain-list-community/dlc.dat
     refilter-geosite:1andrevich/Re-filter-lists/geosite.dat
@@ -236,65 +237,6 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget
           echo "::endgroup::"
 
-      - name: Download xray domain lists
-        if: ${{ env.XRAY_DATA_SOURCES != '' }}
-        run: |
-          dat_path="build_repo/files/usr/share/xray"
-          mkdir -p "${dat_path}"
-
-          # Read the XRAY_DATA_SOURCES environment variable
-          while IFS= read -r entry; do
-              # Trim leading and trailing whitespace
-              entry=$(echo "$entry" | xargs)
-
-              # Skip empty lines
-              if [[ -z "$entry" ]]; then
-                  continue
-              fi
-
-              echo "::group::Processing \"$entry\""
-
-              # Trim whitespace from dest and url
-              dest=$(echo "${entry%%:*}" | xargs)
-              if [[ -z "$dest" ]]; then
-                echo "Destination identifier is empty!" >&2
-                echo "::endgroup::"
-                exit 1
-              fi
-
-              url=$(echo "${entry#*:}" | xargs)
-              if [[ -z "$url" ]]; then
-                echo "URL for \"$dest\" is empty!" >&2
-                echo "::endgroup::"
-                exit 1
-              fi
-
-              # If the URL does not contain "://", treat it as a github.ref_nameerence
-              if [[ "$url" != *"://"* ]]; then
-                  IFS='/' read -r -a parts <<< "$url"
-
-                  if [[ ${#parts[@]} -ne 3 ]]; then
-                    echo "Invalid github.ref_nameerence format: $url" >&2
-                    echo "::endgroup::"
-                    exit 1
-                  fi
-                  
-                  url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
-              fi
-
-              # Download the file using wget
-              wget "$url" -O"${dat_path}/${dest}.dat"
-
-              # Check if the download was successful
-              if [[ $? -ne 0 ]]; then
-                  echo "Failed to download ${dest}.dat." >&2
-                  echo "::endgroup::"
-                  exit 1
-              fi
-
-              echo "Downloaded ${dest}.dat successfully."
-          done <<< "$XRAY_DATA_SOURCES"
-
       - name: Configure firmware image
         run: |
           cat \
@@ -315,6 +257,92 @@ jobs:
               "custom_repo/variations/${{ matrix.variation }}/" \
               "build_repo/files/"
           fi
+
+      - name: Check supported features
+        id: check_supported_features
+        run: |
+          {
+              echo "xray=$(grep -q '^CONFIG_PACKAGE_xray=y' build_repo/.config && echo true || echo false)"
+          } >> $GITHUB_OUTPUT
+
+      - name: Download xray domain lists
+        if: |
+          (env.XRAY_DATA_SOURCES != '') &&
+          (steps.check_supported_features.outputs.xray == 'true')
+        run: |
+          # Read the XRAY_DATA_SOURCES environment variable
+          xray_has_url="false"
+          uci_script=build_dir/files/etc/uci-defaults.d/999-xray-download.sh
+          while IFS= read -r entry; do
+              # Trim leading and trailing whitespace
+              entry=$(echo "$entry" | xargs)
+
+              # Skip empty lines
+              if [[ -z "$entry" ]]; then
+                  continue
+              fi
+
+              echo "::group::Processing \"$entry\""
+
+              # Trim whitespace from dest and url
+              dest=$(echo "${entry%%:*}" | xargs)
+              if [[ -z "$dest" ]]; then
+                echo "::error::Destination identifier is empty!" >&2
+                echo "::endgroup::"
+                exit 1
+              fi
+
+              url=$(echo "${entry#*:}" | xargs)
+              if [[ -z "$url" ]]; then
+                echo "::error::URL for \"$dest\" is empty!" >&2
+                echo "::endgroup::"
+                exit 1
+              fi
+
+              # If the URL does not contain "://", treat it as a github.ref_nameerence
+              if [[ "$url" != *"://"* ]]; then
+                  IFS='/' read -r -a parts <<< "$url"
+
+                  if [[ ${#parts[@]} -ne 3 ]]; then
+                    echo "::error::Invalid github.ref_name format: $url" >&2
+                    echo "::endgroup::"
+                    exit 1
+                  fi
+                  
+                  url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
+              fi
+
+              xray_has_url="true"
+
+              # Download the file using wget
+              dest_path="/usr/share/xray/$dest"
+              {
+                  cmd="wget '$url' -O'${dat_path}/${dest}.dat'"
+                  echo "# Download Xray list: $dest"
+                  echo "$cmd || echo 'Could not download $dest, will resort to cron...'"
+                  echo "grep -q '$dest' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $dest"'"'" >> /etc/crontabs/root"
+                  echo ""
+              } >> $uci_script
+
+              # Check if the download was successful
+              if [[ $? -ne 0 ]]; then
+                  echo "Failed to download ${dest}.dat." >&2
+                  echo "::endgroup::"
+                  exit 1
+              fi
+
+              echo "Downloaded ${dest}.dat successfully."
+          done <<< "$XRAY_DATA_SOURCES"
+
+          if [ "$xray_has_url" = "false" ]; then
+              echo "::error::Xray data sources provided, but no URLs saved"
+              exit 1
+          fi
+
+          chmod +x $uci_script
+          echo "::group::UCI default script contents"
+          cat $uci_script
+          echo "::endgroup::"
 
       - name: Download dependencies
         run: cd build_repo && make download V=sc -j$(($(nproc)+1))
@@ -363,8 +391,9 @@ jobs:
             tar -czvf $directory.tar.gz *
             mv $directory.tar.gz ../
 
-            sysupgrade=*-sysupgrade.bin
-            mv $sysupgrade ../$(echo "${sysupgrade}" | sed 's/xiaomi_ax3600/'"${variation}"'/g')
+            mv \
+                "openwrt-qualcommax-ipq807x-xiaomi_ax3600-squashfs-sysupgrade.bin" \
+                "../openwrt-xiaomi_ax3600-${variation}-sysupgrade.bin"
 
             cd ../
             rm -rf $directory/
