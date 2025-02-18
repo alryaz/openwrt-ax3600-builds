@@ -79,24 +79,27 @@ jobs:
               echo "::endgroup::"
           done
           echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
-      - name: Cancel deployment if no changes
-        id: cancel_unchanged
-        if: |
-          (github.event_name != 'workflow_dispatch') &&
-          (steps.check_commits.outputs.new_commits != 'true')
-        run: |
-          echo "No upstream changes detected. Cancelling workflow run."
-          gh run cancel ${{ github.run_id }}
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # - name: Cancel deployment if no changes
+      #   id: cancel_unchanged
+      #   if: |
+      #     (github.event_name != 'workflow_dispatch') &&
+      #     (steps.check_commits.outputs.new_commits != 'true')
+      #   run: |
+      #     echo "No upstream changes detected. Cancelling workflow run."
+      #     gh run cancel ${{ github.run_id }}
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
 
   build:
     name: Build OpenWrt
     needs: check_commits
     if: |
-      (github.event_name == 'workflow_dispatch') ||
-      ((inputs.repository_ref || github.ref_name) == 'main') &&
-      (needs.check_commits.outputs.new_commits == 'true')
+      always() && (
+        (github.event_name == 'workflow_dispatch') ||
+        (needs.check_commits.result == 'success') &&
+        ((inputs.repository_ref || github.ref_name) == 'main') &&
+        (needs.check_commits.outputs.new_commits == 'true')
+      )
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
@@ -260,6 +263,7 @@ jobs:
     name: Create release
     needs: [check_commits, build]
     if: |
+      (needs.check_commits.result == 'success') &&
       (needs.build.result == 'success') &&
       ((inputs.repository_ref || github.ref_name) == 'main')
     runs-on: ubuntu-latest
