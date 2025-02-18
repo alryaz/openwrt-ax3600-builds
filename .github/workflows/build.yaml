@@ -58,7 +58,7 @@ jobs:
       - name: Save variations
         id: save_variations
         run: |
-          variations=$(find variations -maxdepth 1 -type f -name '*.config' -exec basename {} .config \; | jq -R . | jq -s .)
+          variations=$(find variations -maxdepth 1 -type f -name '*.config' -exec basename {} .config \; | jq -R . | jq -cs .)
           echo "variations=$variations" >> $GITHUB_OUTPUT
 
       - name: Check for new commits in both repositories
@@ -103,7 +103,8 @@ jobs:
     needs: check_commits
     if: |
       always() && (
-        (github.event_name == 'workflow_dispatch') ||
+        (github.event_name == 'workflow_dispatch') &&
+        (needs.check_commits.result != 'failed') ||
         (needs.check_commits.result == 'success') &&
         ((inputs.repository_ref || github.ref_name) == 'main') &&
         (needs.check_commits.outputs.new_commits == 'true')
