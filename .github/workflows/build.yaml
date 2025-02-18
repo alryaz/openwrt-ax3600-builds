@@ -179,13 +179,15 @@ jobs:
           ./scripts/feeds install -a
           echo "::endgroup::"
 
-      - name: Upload artifacts
+      - name: Archive folders using tar
+        run: |
+          tar -czvf archives.tar.gz build_repo custom_repo
+
+      - name: Upload tarball as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: base-buildroot
-          path: |
-            custom_repo/
-            build_repo/
+          name: buildroot-archives
+          path: buildroot.tar.gz
           if-no-files-found: error
 
   build:
@@ -197,10 +199,25 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-24.04
     steps:
-      - name: Download artifacts
+      - name: Download buildroot tarball artifact
         uses: actions/download-artifact@v4
         with:
-          name: base-buildroot
+          name: buildroot-archives
+          path: .
+
+      - name: Extract tarball
+        run: |
+          tar -xzvf buildroot.tar.gz
+          if [ ! -d "build_repo" ] || [ ! -d "custom_repo" ]; then
+            echo "::error::Buildroot tarball does not contain valid buildroot structure!"
+            echo "::group::Workdir ls"
+            ls -alh
+            echo "::endgroup::"
+            echo "::group::Workdir subls"
+            ls -alh *
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: |
