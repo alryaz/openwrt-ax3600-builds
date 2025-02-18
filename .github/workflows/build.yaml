@@ -80,10 +80,9 @@ jobs:
               fi
               echo "Latest ${prefix} commit: ${latest_sha}"
               echo "latest_sha_${postfix}=${latest_sha}" >> $GITHUB_OUTPUT
-              if (echo $release_body | grep -q "${latest_sha}"); then
-                  echo "::notice::New commits detected on ${postfix} repository!"
-                  new_commits="true"
-              fi
+              echo $release_body | grep -q "${latest_sha}" && continue
+              echo "::notice::New commits detected on ${postfix} repository!"
+              new_commits="true"
               echo "::endgroup::"
           done
           echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
