@@ -262,7 +262,7 @@ jobs:
         id: check_supported_features
         run: |
           {
-              echo "xray=$(grep -q '^CONFIG_PACKAGE_xray=y' build_repo/.config && echo true || echo false)"
+              echo "xray=$(grep -q '^CONFIG_PACKAGE_xray-core=y' build_repo/.config && echo true || echo false)"
           } >> $GITHUB_OUTPUT
 
       - name: Download xray domain lists
