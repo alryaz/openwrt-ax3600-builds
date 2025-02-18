@@ -13,6 +13,8 @@ on:
         description: Branch or commit
         type: string
         default: ''
+      cancel_if_no_updates:
+        description: Si
   push:
     branches:
       - 'main'
@@ -23,10 +25,15 @@ on:
     - cron: "0 */2 * * *"
 
 env:
+  # Upstream OpenWRT repository
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
   REMOTE_BRANCH: main-nss
+
+  # Packages repository
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_BRANCH: NSS-12.5-K6.x
+
+  # Other sources
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
   RELEASE_PREFIX: main-nss
@@ -66,12 +73,12 @@ jobs:
               echo "Latest ${prefix} commit: ${latest_sha}"
               echo "latest_sha_${postfix}=${latest_sha}" >> $GITHUB_OUTPUT
               if (echo $release_body | grep -q "$1"); then
-                  echo "::info::New commits detected on ${postfix} repository!"
+                  echo "::notice::New commits detected on ${postfix} repository!"
                   new_commits="true"
               fi
               echo "::endgroup::"
           done
-          echo "new_commits=${upstream_updated}" >> $GITHUB_OUTPUT
+          echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
       - name: Cancel deployment if no changes
         id: cancel_unchanged
         if: |
@@ -97,9 +104,11 @@ jobs:
           echo "::group::Updating repositories"
           sudo apt update
           echo "::endgroup::"
+
           echo "::group::Upgrading software"
           sudo apt full-upgrade -y
           echo "::endgroup::"
+
           echo "::group::Installing requirements"
           sudo apt install -y \
             build-essential clang flex bison g++ gawk \
