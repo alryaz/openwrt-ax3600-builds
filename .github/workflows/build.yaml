@@ -25,11 +25,11 @@ on:
 env:
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
   REMOTE_BRANCH: main-nss
+  NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
+  NSS_PACKAGES_BRANCH: NSS-12.5-K6.x
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
   RELEASE_PREFIX: main-nss
-  NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
-  NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
   XRAY_DATA_SOURCES: |
     domain-list-community:v2fly/domain-list-community/dlc.dat
     refilter-geosite:1andrevich/Re-filter-lists/geosite.dat
@@ -55,7 +55,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
-          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}" --jq .sha)
+          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body || echo "")
 
           # Debug output
@@ -289,7 +289,7 @@ jobs:
 
             ### 📦 NSS Packages
             **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
-            **Branch:** `${{ env.NSS_PACKAGES_REPOSITORY_BRANCH }}`
+            **Branch:** `${{ env.NSS_PACKAGES_BRANCH }}`
             **Commit:** `[${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }}/commit/${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }})`
 
             ### 📝 Build Information
