@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "::group::Updating repositories"
           sudo apt update
-          echo"::endgroup::"
+          echo "::endgroup::"
           echo "::group::Upgrading software"
           sudo apt full-upgrade -y
           echo "::endgroup::"
