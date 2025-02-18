@@ -13,8 +13,6 @@ on:
         description: Branch or commit
         type: string
         default: ''
-      cancel_if_no_updates:
-        description: Si
   push:
     branches:
       - 'main'
