@@ -124,21 +124,29 @@ jobs:
       - name: Add custom patches
         run: |
           if [ "$(ls custom_repo/patches)" ]; then
-            mv custom_repo/patches/* ./
+            mv custom_repo/patches/* build_repo/
+            cd build_repo
             for patch in *.patch; do
+              echo "::group::Applying patch '$patch'"
               git apply --verbose "$patch"
               echo "=== Diff after applying $patch ==="
               git diff HEAD
+              echo "::endgroup::"
             done
-            echo "Changed files after patch application:"
+            echo "::group::Changed files after patch application:"
             git status
+            echo "::endgroup::"
           fi
 
       - name: Update and install feeds
         run: |
           cd build_repo
+          echo "::group::Update feeds"
           ./scripts/feeds update -a
+          echo "::endgroup::"
+          echo "::group::Install feeds"
           ./scripts/feeds install -a
+          echo "::endgroup::"
 
       - name: Configure firmware image
         run: |
