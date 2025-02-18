@@ -320,7 +320,7 @@ jobs:
                   cmd="wget '$url' -O'${dat_path}/${dest}.dat'"
                   echo "# Download Xray list: $dest"
                   echo "$cmd || echo 'Could not download $dest, will resort to cron...'"
-                  echo "grep -q '$dest' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $dest"'"'" >> /etc/crontabs/root"
+                  echo "grep -q '$dest' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $cmd"'"'" >> /etc/crontabs/root"
                   echo ""
               } >> $uci_script
 
