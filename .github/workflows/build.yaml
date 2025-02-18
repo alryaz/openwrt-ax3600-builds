@@ -54,7 +54,7 @@ jobs:
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body || echo "")
           new_commits="false"
           for prefix in "REMOTE" "NSS_PACKAGES"; do
-              postfix="$(echo "${prefix}" | tr '[:upper:]' '[:lower']')"
+              postfix="$(echo "${prefix}" | tr '[:upper:]' '[:lower:]')"
               echo "::group::Processing ${postfix} repository for new commits"
               repo="${prefix}_REPOSITORY"
               branch="${prefix}_BRANCH"
