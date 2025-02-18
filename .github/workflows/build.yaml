@@ -272,7 +272,7 @@ jobs:
         run: |
           # Read the XRAY_DATA_SOURCES environment variable
           xray_has_url="false"
-          uci_script=build_dir/files/etc/uci-defaults.d/999-xray-download.sh
+          uci_script=build_repo/files/etc/uci-defaults.d/999-xray-download.sh
           while IFS= read -r entry; do
               # Trim leading and trailing whitespace
               entry=$(echo "$entry" | xargs)
