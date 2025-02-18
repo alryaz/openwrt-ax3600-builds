@@ -118,6 +118,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Upgrading software"
+          sudo apt-mark hold firefox
           sudo apt full-upgrade -y
           echo "::endgroup::"
 
@@ -208,6 +209,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Upgrading software"
+          sudo apt-mark hold firefox
           sudo apt full-upgrade -y
           echo "::endgroup::"
 
@@ -281,7 +283,7 @@ jobs:
         run: |
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
-            "custom_repo/variations/${{ matrix.variation }}" \
+            "custom_repo/variations/${{ matrix.variation }}.config" \
             > build_repo/.config
           cd build_repo
           make defconfig -j$(nproc)
