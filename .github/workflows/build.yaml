@@ -40,46 +40,43 @@ env:
 jobs:
   check_commits:
     name: Check for new commits
-    if: |
-      ((github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name) == 'main'
     runs-on: ubuntu-latest
     outputs:
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
-      latest_commit_sha: ${{ steps.check_commits.outputs.latest_commit_sha }}
-      nss_packages_repo_new_commits: ${{ steps.check_commits.outputs.nss_packages_repo_new_commits }}
-      nss_packages_repo_latest_commit_sha: ${{ steps.check_commits.outputs.nss_packages_repo_latest_commit_sha }}
+      latest_sha_remote: ${{ steps.check_commits.outputs.latest_sha_remote }}
+      latest_sha_nss_packages: ${{ steps.check_commits.outputs.latest_sha_nss_packages }}
     steps:
       - name: Check for new commits in both repositories
         id: check_commits
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          latest_sha=$(gh api "repos/${{ env.REMOTE_REPOSITORY }}/commits/${{ env.REMOTE_BRANCH }}" --jq .sha)
-          packages_sha=$(gh api "repos/${{ env.NSS_PACKAGES_REPOSITORY }}/commits/${{ env.NSS_PACKAGES_BRANCH }}" --jq .sha)
           release_body=$(gh api "repos/${{ github.repository }}/releases/latest" --jq .body || echo "")
-
-          # Debug output
-          echo "Latest upstream commit: $latest_sha"
-          echo "Latest packages commit: $packages_sha"
-
-          {
-            echo "latest_commit_sha=$latest_sha"
-            echo "nss_packages_repo_latest_commit_sha=$packages_sha"
-            if [ -z "$release_body" ]; then
-              echo "new_commits=true"
-              echo "nss_packages_repo_new_commits=true"
-            else
-              check_sha() { echo $release_body | grep -q "$1" && echo false || echo true; }
-              echo "new_commits=$(check_sha $latest_sha)"
-              echo "nss_packages_repo_new_commits=$(check_sha $packages_sha)"
-            fi
-          } >> $GITHUB_OUTPUT
+          new_commits="false"
+          for prefix in "REMOTE" "NSS_PACKAGES"; do
+              postfix="$(echo "${prefix}" | tr '[:upper:]' '[:lower']')"
+              echo "::group::Processing ${postfix} repository for new commits"
+              repo="${prefix}_REPOSITORY"
+              branch="${prefix}_BRANCH"
+              latest_sha=$(gh api "repos/${!repo}/commits/${!branch}" --jq .sha)
+              if [ -z "${latest_sha}" ]; then
+                  echo "::error::SHA not found on ${prefix}"
+                  exit 1
+              fi
+              echo "Latest ${prefix} commit: ${latest_sha}"
+              echo "latest_sha_${postfix}=${latest_sha}" >> $GITHUB_OUTPUT
+              if (echo $release_body | grep -q "$1"); then
+                  echo "::info::New commits detected on ${postfix} repository!"
+                  new_commits="true"
+              fi
+              echo "::endgroup::"
+          done
+          echo "new_commits=${upstream_updated}" >> $GITHUB_OUTPUT
       - name: Cancel deployment if no changes
         id: cancel_unchanged
         if: |
           (github.event_name != 'workflow_dispatch') &&
-          (steps.check_commits.outputs.new_commits != 'true') &&
-          (steps.check_commits.outputs.nss_packages_repo_new_commits != 'true')
+          (steps.check_commits.outputs.new_commits != 'true')
         run: |
           echo "No upstream changes detected. Cancelling workflow run."
           gh run cancel ${{ github.run_id }}
@@ -90,14 +87,9 @@ jobs:
     name: Build OpenWrt
     needs: check_commits
     if: |
-      always() &&
-      (
-        (needs.check_commits.result == 'success') && (
-          (needs.check_commits.outputs.new_commits == 'true') ||
-          (needs.check_commits.outputs.nss_packages_repo_new_commits == 'true')
-        ) ||
-        (github.event_name == 'workflow_dispatch')
-      )
+      (github.event_name == 'workflow_dispatch') ||
+      ((inputs.repository_ref || github.ref_name) == 'main') &&
+      (needs.check_commits.outputs.new_commits == 'true')
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
@@ -259,7 +251,8 @@ jobs:
     name: Create release
     needs: [check_commits, build]
     if: |
-      (needs.check_commits.result == 'success') && (needs.build.result == 'success')
+      (needs.build.result == 'success') &&
+      ((inputs.repository_ref || github.ref_name) == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -285,12 +278,12 @@ jobs:
             ### 🔄 Main Repository
             **Repository:** [${{ env.REMOTE_REPOSITORY }}](https://github.com/${{ env.REMOTE_REPOSITORY }})
             **Branch:** `${{ env.REMOTE_BRANCH }}`
-            **Commit:** `[${{ needs.check_commits.outputs.latest_commit_sha }}](https://github.com/${{ env.REMOTE_REPOSITORY }}/commit/${{ needs.check_commits.outputs.latest_commit_sha }})`
+            **Commit:** `[${{ needs.check_commits.outputs.latest_sha_remote }}](https://github.com/${{ env.REMOTE_REPOSITORY }}/commit/${{ needs.check_commits.outputs.latest_commit_sha }})`
 
             ### 📦 NSS Packages
             **Repository:** [${{ env.NSS_PACKAGES_REPOSITORY }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }})
             **Branch:** `${{ env.NSS_PACKAGES_BRANCH }}`
-            **Commit:** `[${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }}/commit/${{ needs.check_commits.outputs.nss_packages_repo_latest_commit_sha }})`
+            **Commit:** `[${{ needs.check_commits.outputs.latest_sha_nss_packages }}](https://github.com/${{ env.NSS_PACKAGES_REPOSITORY }}/commit/${{ needs.check_commits.outputs.latest_sha_nss_packages }})`
 
             ### 📝 Build Information
             - **Target:** [Xiaomi Mi AIoT Router AX3600](https://openwrt.org/toh/xiaomi/ax3600)
