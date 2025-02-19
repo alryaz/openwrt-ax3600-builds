@@ -29,7 +29,6 @@ env:
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
   RELEASE_PREFIX: main-nss
-  XRAY_DOWNLOAD_CRON: "0 */2 * * *"
   XRAY_DATA_SOURCES: |
     domain-list-community:v2fly/domain-list-community/dlc.dat
     refilter-geosite:1andrevich/Re-filter-lists/geosite.dat
@@ -279,11 +278,26 @@ jobs:
         run: |
           # Read the XRAY_DATA_SOURCES environment variable
           xray_has_url="false"
-          uci_script=build_repo/files/etc/uci-defaults/999-xray-download.sh
+          uci_script=build_repo/files/usr/bin/update-xray-data
           mkdir -p "$(dirname "${uci_script}")"
+          {
+              echo "#!/bin/sh"
+              echo ""
+              echo "# Update Xray .dat files"
+              echo ""
+          } > "${uci_script}"
           
           keepd_path=build_repo/files/var/lib/keep.d/xray-data-sources
           mkdir -p "$(dirname "${keepd_path}")"
+
+          if grep -q '^CONFIG_PACKAGE_curl=y' build_repo/.config; then
+              cmd="curl -o '%s' '%s'"
+          elif grep -q '^CONFIG_PACKAGE_wget-ssl=y' build_repo/.config; then
+              cmd="wget -O '%s' '%s'"
+          else
+              echo "::warning::Cowardly refusing to generate update script because no means to download found."
+              exit 0
+          fi
           
           while IFS= read -r entry; do
               # Trim leading and trailing whitespace
@@ -324,23 +338,15 @@ jobs:
                   url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
               fi
 
-              # Signify that at least one URL had been processed
-              xray_has_url="true"
-
               # Setup cron and keep.d
               dest_path="/usr/share/xray/${dest}.dat"
-              echo "grep -q '${dest_path}' /etc/crontabs/root || echo "'"'"${XRAY_DOWNLOAD_CRON}   wget '$url' -O'${dest_path}'"'"'" >> /etc/crontabs/root" >> "${uci_script}"
+              printf "${cmd}\n" "${dest_path}" "${url}" >> "${uci_script}"
               echo "${dest_path}" >> "${keepd_path}"
 
               echo "Downloaded ${dest}.dat successfully."
           done <<< "$XRAY_DATA_SOURCES"
 
-          if [ "$xray_has_url" = "false" ]; then
-              echo "::error::Xray data sources provided, but no URLs saved"
-              exit 1
-          fi
-
-          chmod +x $uci_script
+          chmod +x "${uci_script}"
           echo "::group::UCI default script contents"
           cat "${uci_script}"
           echo "::endgroup::"
