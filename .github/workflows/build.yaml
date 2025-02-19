@@ -271,10 +271,10 @@ jobs:
           # Read the XRAY_DATA_SOURCES environment variable
           xray_has_url="false"
           uci_script=build_repo/files/etc/uci-defaults/999-xray-download.sh
-          mkdir -p "$(dirname "${uci_script}")
+          mkdir -p "$(dirname "${uci_script}")"
           
-          keepd_path=build_repo/var/lib/keep.d/xray-data-sources
-          mkdir -p "$(dirname "${keepd_path}")
+          keepd_path=build_repo/files/var/lib/keep.d/xray-data-sources
+          mkdir -p "$(dirname "${keepd_path}")"
           
           while IFS= read -r entry; do
               # Trim leading and trailing whitespace
