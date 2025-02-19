@@ -7,7 +7,7 @@ set wireless.default_radio0.ieee80211k='1'
 set wireless.default_radio0.time_advertisement='2'
 set wireless.default_radio0.bss_transition='1'
 set wireless.default_radio0.proxy_arp='1'
-set wireless.default_radio0.ocv='1'
+# set wireless.default_radio0.ocv='1'
 
 # Wireless radio0 specific settings
 set wireless.radio0.htmode='HE40'
@@ -20,7 +20,7 @@ set wireless.default_radio1.ieee80211k='1'
 set wireless.default_radio1.time_advertisement='2'
 set wireless.default_radio1.bss_transition='1'
 set wireless.default_radio1.proxy_arp='1'
-set wireless.default_radio1.ocv='1'
+# set wireless.default_radio1.ocv='1'
 
 # Wireless radio1 specific settings
 set wireless.radio1.htmode='HE160'
@@ -33,6 +33,7 @@ set wireless.default_radio2.ieee80211k='1'
 set wireless.default_radio2.time_advertisement='2'
 set wireless.default_radio2.bss_transition='1'
 set wireless.default_radio2.proxy_arp='1'
+# set wireless.default_radio2.ocv='1'
 
 # Wireless radio2 specific settings
 set wireless.radio2.htmode='HE40'
