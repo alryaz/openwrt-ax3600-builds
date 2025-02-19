@@ -38,9 +38,22 @@ env:
     antifilter-geoip:1andrevich/antifilter-geoip/geoip.dat
 
 jobs:
+  pre_job:
+    name: Check for running duplicate actions
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          skip_after_successful_duplicate: 'true'
+
   check_commits:
     name: Check for new commits
     runs-on: ubuntu-latest
+    needs: [pre_job]
+    if: needs.pre_job.outputs.should_skip != 'true'
     outputs:
       variations: ${{ steps.save_variations.outputs.variations }}
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
