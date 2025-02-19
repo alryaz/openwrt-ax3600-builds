@@ -13,12 +13,6 @@ on:
         description: Branch or commit
         type: string
         default: ''
-  push:
-    branches:
-      - 'main'
-    paths:
-      - '/ax3600.config'
-      - '/files'
   schedule:
     - cron: "0 */2 * * *"
 
