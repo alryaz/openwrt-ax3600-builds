@@ -194,7 +194,7 @@ jobs:
     strategy:
       matrix:
         variation: ${{ fromJSON(needs.check_commits.outputs.variations) }}
-      fail-fast: false
+      fail-fast: true
     runs-on: ubuntu-24.04
     steps:
       - name: Download buildroot tarball artifact
