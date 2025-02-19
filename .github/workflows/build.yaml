@@ -177,6 +177,15 @@ jobs:
           ./scripts/feeds install -a
           echo "::endgroup::"
 
+      - name: Configure base firmware image
+        run: |
+          cat "custom_repo/${{ env.CONFIG_FILE }}" > build_repo/.config
+          cd build_repo
+          make defconfig -j$(nproc)
+
+      - name: Download dependencies
+        run: cd build_repo && make download V=sc -j$(($(nproc)+1))
+
       - name: Archive folders using tar
         run: |
           tar -czvf buildroot.tar.gz build_repo custom_repo
@@ -235,7 +244,7 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget
           echo "::endgroup::"
 
-      - name: Configure firmware image
+      - name: Configure ${{ matrix.item }} firmware image
         run: |
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
