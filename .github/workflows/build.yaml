@@ -87,16 +87,6 @@ jobs:
               echo "::endgroup::"
           done
           echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
-      # - name: Cancel deployment if no changes
-      #   id: cancel_unchanged
-      #   if: |
-      #     (github.event_name != 'workflow_dispatch') &&
-      #     (steps.check_commits.outputs.new_commits != 'true')
-      #   run: |
-      #     echo "No upstream changes detected. Cancelling workflow run."
-      #     gh run cancel ${{ github.run_id }}
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
 
   prepare_build:
     name: "Prepare build environment"

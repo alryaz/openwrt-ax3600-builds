@@ -4,6 +4,10 @@ This project automates the process of building OpenWrt firmware images for the Q
 
 ## Features
 
+- Different variations for different applications:
+    - [`home-router`](variations/home-router.config) - all-in-one package containing most packages
+    - [`enterprise-ap`](variations/enterprise-ap.config) - firmware that may be used on enterprise access points
+    - [`xray-router`](variations/xray-router.config) - barebones router that supports Wireguard and Xray
 - Automated build process triggered by new commits in the [remote repository](https://github.com/qosmio/openwrt-ipq) or manual workflow dispatch
 - Compiler optimizations for improved performance
 - Hardening build options for enhanced security
@@ -12,6 +16,7 @@ This project automates the process of building OpenWrt firmware images for the Q
 - Full NSS (Network Subsystem) support 
 - Quality-of-life enhancements through UCI configuration
 - Rich stack of VPN technologies pre-packages (uninterrupted sysupgrade possible!)
+- Xray data sources downloader and keeper built-in (cron-based)
 
 ## Build Process
 
@@ -32,7 +37,11 @@ The build process is automated using GitHub Actions and consists of the followin
 
 The project utilizes a custom configuration file [`ax3600.config`](ax3600.config) to specify the desired settings for the firmware build. This file includes various options such as target platform, compiler optimizations, package selections, and more.
 
+Additional variations of the firmware are built on top of this custom configuration file (they are concatenated before commencing the build).
+
 Additionally, the `uci` commands in the "Quality-of-Life Enhancements" section are used to fine-tune the wireless and network settings for improved performance and functionality. Refer to the [999-QOL_config](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/blob/main/files/etc/uci-defaults/999-QOL_config) for the specific configuration. 
+
+Home Assistant integration is provided by https://github.com/kvj/hass_openwrt custom component. Password must be changed for `hass` user after initial boot to enable access to the ubus interface.
 
 ## SSH Hardening
 
