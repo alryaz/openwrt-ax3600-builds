@@ -273,6 +273,11 @@ jobs:
           # Read the XRAY_DATA_SOURCES environment variable
           xray_has_url="false"
           uci_script=build_repo/files/etc/uci-defaults/999-xray-download.sh
+          mkdir -p "$(dirname "${uci_script}")
+          
+          keepd_path=build_repo/var/lib/keep.d/xray-data-sources
+          mkdir -p "$(dirname "${keepd_path}")
+          
           while IFS= read -r entry; do
               # Trim leading and trailing whitespace
               entry=$(echo "$entry" | xargs)
@@ -312,24 +317,21 @@ jobs:
                   url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
               fi
 
+              # Signify that at least one URL had been processed
               xray_has_url="true"
 
               # Download the file using wget
-              dest_path="/usr/share/xray/$dest"
+              dest_path="/usr/share/xray/${dest}.dat"
               {
-                  cmd="wget '$url' -O'${dat_path}/${dest}.dat'"
+                  cmd="wget '$url' -O'${dest_path}'"
                   echo "# Download Xray list: $dest"
                   echo "$cmd || echo 'Could not download $dest, will resort to cron...'"
-                  echo "grep -q '$dest' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $cmd"'"'" >> /etc/crontabs/root"
+                  echo "grep -q '${dest_path}' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $cmd"'"'" >> /etc/crontabs/root"
                   echo ""
               } >> $uci_script
 
-              # Check if the download was successful
-              if [[ $? -ne 0 ]]; then
-                  echo "Failed to download ${dest}.dat." >&2
-                  echo "::endgroup::"
-                  exit 1
-              fi
+              # Save to keepd
+              echo "${dest_path}" >> $keepd_path
 
               echo "Downloaded ${dest}.dat successfully."
           done <<< "$XRAY_DATA_SOURCES"
@@ -342,6 +344,10 @@ jobs:
           chmod +x $uci_script
           echo "::group::UCI default script contents"
           cat $uci_script
+          echo "::endgroup::"
+
+          echo "::group::keep.d reboot save path"
+          cat $keepd_path
           echo "::endgroup::"
 
       - name: Download dependencies
