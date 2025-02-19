@@ -326,10 +326,10 @@ jobs:
                   echo "$cmd || echo 'Could not download $dest, will resort to cron...'"
                   echo "grep -q '${dest_path}' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $cmd"'"'" >> /etc/crontabs/root"
                   echo ""
-              } >> $uci_script
+              } >> "${uci_script}"
 
               # Save to keepd
-              echo "${dest_path}" >> $keepd_path
+              echo "${dest_path}" >> "${keepd_path}"
 
               echo "Downloaded ${dest}.dat successfully."
           done <<< "$XRAY_DATA_SOURCES"
@@ -341,11 +341,11 @@ jobs:
 
           chmod +x $uci_script
           echo "::group::UCI default script contents"
-          cat $uci_script
+          cat "${uci_script}"
           echo "::endgroup::"
 
           echo "::group::keep.d reboot save path"
-          cat $keepd_path
+          cat "${keepd_path}"
           echo "::endgroup::"
 
       - name: Download dependencies
