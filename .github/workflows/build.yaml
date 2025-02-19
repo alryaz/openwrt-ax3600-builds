@@ -327,17 +327,9 @@ jobs:
               # Signify that at least one URL had been processed
               xray_has_url="true"
 
-              # Download the file using wget
+              # Setup cron and keep.d
               dest_path="/usr/share/xray/${dest}.dat"
-              {
-                  cmd="wget '$url' -O'${dest_path}'"
-                  echo "# Download Xray list: $dest"
-                  echo "$cmd || echo 'Could not download $dest, will resort to cron...'"
-                  echo "grep -q '${dest_path}' /etc/crontabs/root || echo "'"'"$XRAY_DOWNLOAD_CRON   $cmd"'"'" >> /etc/crontabs/root"
-                  echo ""
-              } >> "${uci_script}"
-
-              # Save to keepd
+              echo "grep -q '${dest_path}' /etc/crontabs/root || echo "'"'"${XRAY_DOWNLOAD_CRON}   wget '$url' -O'${dest_path}'"'"'" >> /etc/crontabs/root" >> "${uci_script}"
               echo "${dest_path}" >> "${keepd_path}"
 
               echo "Downloaded ${dest}.dat successfully."
