@@ -406,6 +406,13 @@ jobs:
       - name: Get current date
         run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
 
+      - name: Delete current release assets
+        uses: andreaswilli/delete-release-assets-action@main
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}
+
       - name: Create release
         uses: softprops/action-gh-release@master
         with:
