@@ -183,7 +183,7 @@ jobs:
             echo "::endgroup::"
           fi
   
-      - name: Configure ${{ matrix.item }} firmware image
+      - name: Configure ${{ matrix.variation }} firmware image
         run: |
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
