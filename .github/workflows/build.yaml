@@ -205,18 +205,19 @@ jobs:
 
             mkdir -p ./build_repo/tmp && echo "1" > ./build_repo/tmp/.build
 
-            echo "toolchain skiped done!"
+            echo "Toolchain appears to be actual!"
           else
-            echo "caches missed!"
+            echo "Caches missed!"
           fi
 
           if ${{ steps.check-cache.outputs.cache-hit != 'true' }}; then
-            CACHE_LIST=$(gh cache list --key ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{env.FIRMWARE_TAG}} | cut -f 1)
+            CACHE_LIST=$(gh cache list --key ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }} | cut -f 1)
             for CACHE_KEY in $CACHE_LIST; do
-               gh cache delete $CACHE_KEY
+              echo "Removing cache key: $CACHE_KEY"
+              gh cache delete $CACHE_KEY
             done
 
-            echo "caches cleanup done!"
+            echo "Caches cleanup done!"
           fi
 
       - name: Update and install feeds
