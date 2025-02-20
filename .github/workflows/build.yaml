@@ -288,43 +288,6 @@ jobs:
           echo "::group::keep.d reboot save path"
           cat "${keepd_path}"
           echo "::endgroup::"
-          
-      - name: Check caches
-        id: check-cache
-        uses: actions/cache@v4
-        with:
-          key: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}-${{ env.CONFIG_HASH }}
-          restore-keys: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}
-          path: |
-            ./build_repo/.ccache
-            ./build_repo/staging_dir/host*
-            ./build_repo/staging_dir/tool*
-
-      - name: Update caches
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -d "./build_repo/staging_dir" ]; then
-            find "./build_repo/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r DIR; do
-              find "$DIR" -type f -exec touch {} +
-            done
-
-            mkdir -p ./build_repo/tmp && echo "1" > ./build_repo/tmp/.build
-
-            echo "Toolchain appears to be actual!"
-          else
-            echo "Caches missed!"
-          fi
-
-          if ${{ steps.check-cache.outputs.cache-hit != 'true' }}; then
-            CACHE_LIST=$(gh cache list --key ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }} | cut -f 1)
-            for CACHE_KEY in $CACHE_LIST; do
-              echo "Removing cache key: $CACHE_KEY"
-              gh cache delete $CACHE_KEY
-            done
-
-            echo "Caches cleanup done!"
-          fi
 
       - name: Include custom files
         run: |
