@@ -261,8 +261,8 @@ jobs:
             # zip -r $directory.zip *
             # mv $directory.zip ../
 
-            tar -czvf $directory.tar.gz *
-            mv $directory.tar.gz ../
+            tar --zstd -cvf $directory.tar.zst *
+            mv $directory.tar.zst ../
 
             mv \
                 "openwrt-qualcommax-ipq807x-xiaomi_ax3600-squashfs-sysupgrade.bin" \
