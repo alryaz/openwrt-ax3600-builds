@@ -13,6 +13,10 @@ on:
         description: Branch or commit
         type: string
         default: ''
+      variations:
+        description: Build variations, comma-separated
+        type: string
+        default: ''
   schedule:
     - cron: "0 */2 * * *"
 
@@ -52,8 +56,25 @@ jobs:
       - name: Save variations
         id: save_variations
         run: |
-          variations=$(find variations -maxdepth 1 -type f -name '*.config' -exec basename {} .config \; | jq -R . | jq -cs .)
-          echo "variations=$variations" >> $GITHUB_OUTPUT
+          if [ ! -z "${{ inputs.variations }}" ]; then
+            echo "Before filtering: ${{ inputs.variations }}"
+            variations=$(echo "${{ inputs.variations }}" | tr ',' '\n' | sed '/^[[:space:]]*$/d' | sort | uniq)
+            echo "After filtering: $variations"
+          fi
+          if [ -z "$variations" ]; then
+            echo "No variations via input provided"
+            variations=$(find variations -maxdepth 1 -type f -name '*.config' -exec basename {} .config \; | jq -R . | jq -cs .)
+          else
+            for variation in $variations; do
+              if [ ! -f "variations/$variation.config" ]; then
+                echo "::error::Variation '$variation' is not supported by this repository"
+                exit 1
+              fi
+            done
+            variations=$(echo -n "$variations" | jq -Rcs 'split("\n")')
+          fi
+
+          echo "variations=$variations" | tee -a $GITHUB_OUTPUT
 
       - name: Check for new commits in both repositories
         id: check_commits
