@@ -293,11 +293,11 @@ jobs:
       - name: Include custom files
         run: |
           mkdir -p "build_repo/files"
-          rsync -alv --partial \
+          rsync -rvP \
             "custom_repo/${{ env.CUSTOM_FILES_PATH }}/" \
             "build_repo/files/"
           if [ -d "custom_repo/variations/${{ matrix.variation }}" ]; then
-            rsync -alv --partial \
+            rsync -rvP \
               "custom_repo/variations/${{ matrix.variation }}/" \
               "build_repo/files/"
           fi
