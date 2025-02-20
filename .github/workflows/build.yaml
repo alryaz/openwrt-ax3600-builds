@@ -155,6 +155,16 @@ jobs:
           path: "custom_repo"
           ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name }}
 
+      - name: Update and install feeds
+        run: |
+          cd build_repo
+          echo "::group::Update feeds"
+          ./scripts/feeds update -a
+          echo "::endgroup::"
+          echo "::group::Install feeds"
+          ./scripts/feeds install -a
+          echo "::endgroup::"
+  
       - name: Add custom patches
         run: |
           if [ "$(ls custom_repo/patches)" ]; then
@@ -171,7 +181,7 @@ jobs:
             git status
             echo "::endgroup::"
           fi
-
+  
       - name: Configure ${{ matrix.item }} firmware image
         run: |
           cat \
@@ -180,67 +190,7 @@ jobs:
             > build_repo/.config
           cd build_repo
           make defconfig -j$(nproc)
-          CONFIG_HASH=$(md5sum $GITHUB_WORKSPACE/$CONFIG_FILE | awk '{print $1}')
-          echo "CONFIG_HASH=$CONFIG_HASH" >> $GITHUB_ENV
-
-      - name: Check caches
-        id: check-cache
-        uses: actions/cache@v4
-        with:
-          key: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}-${{ env.CONFIG_HASH }}
-          restore-keys: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}
-          path: |
-            ./build_repo/.ccache
-            ./build_repo/staging_dir/host*
-            ./build_repo/staging_dir/tool*
-
-      - name: Update caches
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -d "./build_repo/staging_dir" ]; then
-            find "./build_repo/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r DIR; do
-              find "$DIR" -type f -exec touch {} +
-            done
-
-            mkdir -p ./build_repo/tmp && echo "1" > ./build_repo/tmp/.build
-
-            echo "Toolchain appears to be actual!"
-          else
-            echo "Caches missed!"
-          fi
-
-          if ${{ steps.check-cache.outputs.cache-hit != 'true' }}; then
-            CACHE_LIST=$(gh cache list --key ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }} | cut -f 1)
-            for CACHE_KEY in $CACHE_LIST; do
-              echo "Removing cache key: $CACHE_KEY"
-              gh cache delete $CACHE_KEY
-            done
-
-            echo "Caches cleanup done!"
-          fi
-
-      - name: Update and install feeds
-        run: |
-          cd build_repo
-          echo "::group::Update feeds"
-          ./scripts/feeds update -a
-          echo "::endgroup::"
-          echo "::group::Install feeds"
-          ./scripts/feeds install -a
-          echo "::endgroup::"
-
-      - name: Include custom files
-        run: |
-          mkdir -p "build_repo/files"
-          rsync -alv --partial \
-            "custom_repo/${{ env.CUSTOM_FILES_PATH }}/" \
-            "build_repo/files/"
-          if [ -d "custom_repo/variations/${{ matrix.variation }}" ]; then
-            rsync -alv --partial \
-              "custom_repo/variations/${{ matrix.variation }}/" \
-              "build_repo/files/"
-          fi
+          echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
 
       - name: Check supported features
         id: check_supported_features
@@ -332,6 +282,55 @@ jobs:
           echo "::group::keep.d reboot save path"
           cat "${keepd_path}"
           echo "::endgroup::"
+          
+      - name: Check caches
+        id: check-cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}-${{ env.CONFIG_HASH }}
+          restore-keys: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}
+          path: |
+            ./build_repo/.ccache
+            ./build_repo/staging_dir/host*
+            ./build_repo/staging_dir/tool*
+
+      - name: Update caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -d "./build_repo/staging_dir" ]; then
+            find "./build_repo/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r DIR; do
+              find "$DIR" -type f -exec touch {} +
+            done
+
+            mkdir -p ./build_repo/tmp && echo "1" > ./build_repo/tmp/.build
+
+            echo "Toolchain appears to be actual!"
+          else
+            echo "Caches missed!"
+          fi
+
+          if ${{ steps.check-cache.outputs.cache-hit != 'true' }}; then
+            CACHE_LIST=$(gh cache list --key ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }} | cut -f 1)
+            for CACHE_KEY in $CACHE_LIST; do
+              echo "Removing cache key: $CACHE_KEY"
+              gh cache delete $CACHE_KEY
+            done
+
+            echo "Caches cleanup done!"
+          fi
+
+      - name: Include custom files
+        run: |
+          mkdir -p "build_repo/files"
+          rsync -alv --partial \
+            "custom_repo/${{ env.CUSTOM_FILES_PATH }}/" \
+            "build_repo/files/"
+          if [ -d "custom_repo/variations/${{ matrix.variation }}" ]; then
+            rsync -alv --partial \
+              "custom_repo/variations/${{ matrix.variation }}/" \
+              "build_repo/files/"
+          fi
 
       - name: Download dependencies
         run: cd build_repo && make download V=sc -j$(($(nproc)+1))
