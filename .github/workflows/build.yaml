@@ -195,6 +195,8 @@ jobs:
             ./build_repo/staging_dir/tool*
 
       - name: Update caches
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -d "./build_repo/staging_dir" ]; then
             find "./build_repo/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r DIR; do
