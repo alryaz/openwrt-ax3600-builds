@@ -234,6 +234,7 @@ jobs:
         with:
           name: ipq807x-images-${{ matrix.variation }}
           path: build_repo/bin/targets/qualcommax/ipq807x
+          if-no-files-found: 'error'
 
   release:
     name: Create release
