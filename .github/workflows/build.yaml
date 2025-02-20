@@ -325,56 +325,6 @@ jobs:
         with:
           name: build-error-{{ matrix.variation }}
           path: build_repo/build_error.log
-
-      - name: Optimize compilation directories
-        run: |
-          echo "::group::Retrieve starting directory sizes"
-          du -sh $OPENWRT_PATH/.ccache 2>/dev/null || echo "No .ccache directory found"
-          
-          if compgen -G "$OPENWRT_PATH/staging_dir/host*" > /dev/null; then
-            du -sh $OPENWRT_PATH/staging_dir/host* 2>/dev/null
-          else
-            echo "No host directories found"
-          fi
-          
-          if compgen -G "$OPENWRT_PATH/staging_dir/tool*" > /dev/null; then
-            du -sh $OPENWRT_PATH/staging_dir/tool* 2>/dev/null
-            echo "======== staging_dir/tool* Subdirectory Sizes ========"
-            for dir in "$OPENWRT_PATH/staging_dir/tool"*; do
-              echo "Subdirectories in: $dir"
-              du -sh "$dir"/* 2>/dev/null || echo "No subdirectories in $dir"
-              echo "---------------------------------"
-            done
-          else
-            echo "No tool directories found"
-          fi
-          echo "::endgroup::"
-      
-          echo "::group::Remove 'initial' directories under toolchain"
-          find "$OPENWRT_PATH/staging_dir/toolchain-"* -type d -name "initial" -exec rm -rf {} + 2>/dev/null || echo "No 'initial' directory found"
-          echo "::endgroup::"
-      
-          echo "::group::Display resulting directory sizes"
-          du -sh $OPENWRT_PATH/.ccache 2>/dev/null || echo "No .ccache directory found"
-      
-          if compgen -G "$OPENWRT_PATH/staging_dir/host*" > /dev/null; then
-            du -sh $OPENWRT_PATH/staging_dir/host* 2>/dev/null
-          else
-            echo "No host directories found"
-          fi
-      
-          if compgen -G "$OPENWRT_PATH/staging_dir/tool*" > /dev/null; then
-            du -sh $OPENWRT_PATH/staging_dir/tool* 2>/dev/null
-            echo "======== staging_dir/tool* Subdirectory Sizes After Cleanup ========"
-            for dir in "$OPENWRT_PATH/staging_dir/tool"*; do
-              echo "Subdirectories in: $dir"
-              du -sh "$dir"/* 2>/dev/null || echo "No subdirectories in $dir"
-              echo "---------------------------------"
-            done
-          else
-            echo "No tool directories found"
-          fi
-          echo "::endgroup::"
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
