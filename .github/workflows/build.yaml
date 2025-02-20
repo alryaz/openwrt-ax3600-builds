@@ -111,6 +111,38 @@ jobs:
       fail-fast: true
     runs-on: ubuntu-24.04
     steps:
+      - name: Check umask prior to cloning
+        run: |
+          echo "Current ACLs:"
+          getfacl -d .
+
+          echo "Setting default ACLs"
+          setfacl -d --set u::rwx,g::rx,o::rx .
+
+          echo "Updated ACLs:"
+          getfacl -d .
+
+      # This intentionally uses the run command instead of a determined checkout
+      # action because the checkout action severs reflog, causing the release
+      # number generation script of OpenWRT to fail and return '0' instead of
+      # actual number, resulting in 'r0' appended to the release version.
+      - name: Checkout remote repository
+        run: |
+          umask 0022
+          git clone "https://github.com/${{ env.REMOTE_REPOSITORY }}.git" \
+            "build_repo" \
+            --single-branch \
+            --branch "${{ env.REMOTE_BRANCH }}"
+
+          echo "ACLs on build repository after cloning:"
+          getfacl -d build_repo
+
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          path: "custom_repo"
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name }}
+
       - name: Install dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -131,33 +163,9 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget libelf-dev
           echo "::endgroup::"
 
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        continue-on-error: true
-        with:
-          swap-size-mb: 1024
-          temp-reserve-mb: 100
-          root-reserve-mb: 1024
-
-      # This intentionally uses the run command instead of a determined checkout
-      # action because the checkout action severs reflog, causing the release
-      # number generation script of OpenWRT to fail and return '0' instead of
-      # actual number, resulting in 'r0' appended to the release version.
-      - name: Checkout remote repository
-        run: |
-          git clone "https://github.com/${{ env.REMOTE_REPOSITORY }}.git" \
-            "build_repo" \
-            --single-branch \
-            --branch "${{ env.REMOTE_BRANCH }}"
-
-      - name: Checkout current repository
-        uses: actions/checkout@v4
-        with:
-          path: "custom_repo"
-          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name }}
-
       - name: Update and install feeds
         run: |
+          umask 0022
           cd build_repo
           echo "::group::Update feeds"
           ./scripts/feeds update -a
@@ -169,6 +177,7 @@ jobs:
       - name: Add custom patches
         run: |
           if [ "$(ls custom_repo/patches)" ]; then
+            umask 0022
             mv custom_repo/patches/* build_repo/
             cd build_repo
             for patch in *.patch; do
@@ -185,6 +194,7 @@ jobs:
   
       - name: Configure ${{ matrix.variation }} firmware image
         run: |
+          umask 0022
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
             "custom_repo/variations/${{ matrix.variation }}.config" \
@@ -195,32 +205,33 @@ jobs:
 
       - name: Include custom files
         run: |
+          umask 0022
           mkdir -p "build_repo/files"
-          rsync -rvP \
+          rsync -rvP --no-perms --no-owner --no-group \
             "custom_repo/${{ env.CUSTOM_FILES_PATH }}/" \
             "build_repo/files/"
           if [ -d "custom_repo/variations/${{ matrix.variation }}" ]; then
-            rsync -rvP \
+            rsync -rvP --no-perms --no-owner --no-group \
               "custom_repo/variations/${{ matrix.variation }}/" \
               "build_repo/files/"
           fi
 
       - name: Download dependencies
-        run: cd build_repo && make download V=sc -j$(($(nproc)+1))
+        run: umask 0022 && cd build_repo && make download V=sc -j$(($(nproc)+1))
 
       - name: Build the firmware image (multicore, unverbose)
         id: build_multiple_cores
-        run: cd build_repo && make world -j$(($(nproc)+1))
+        run: umask 0022 && cd build_repo && make world -j$(($(nproc)+1))
 
       - name: Build the firmware image (single core, unverbose)
         if: failure() && steps.build_multiple_cores.conclusion == 'failure'
         id: build_single_core
-        run: cd build_repo && make world V=sc -j1
+        run: umask 0022 && cd build_repo && make world V=sc -j1
 
       - name: Build the firmware image (single core, verbose)
         if: failure() && steps.build_single_core.conclusion == 'failure'
         id: pin_down_error
-        run: cd build_repo && make world V=sc -j1 | tee build_error.log
+        run: umask 0022 && cd build_repo && make world V=sc -j1 | tee build_error.log
 
       - name: Upload error log as artifact
         if: failure() && steps.pin_down_error.conclusion == 'failure'
