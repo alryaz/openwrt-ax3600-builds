@@ -143,12 +143,6 @@ jobs:
           path: "custom_repo"
           ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name }}
 
-      - name: Add extra package feeds
-        run: |
-          echo "src-link extra_packages ${{ github.workspace }}/extra_packages" >> feeds.conf.default
-          echo "src-git-full luci_app_xray https://github.com/yichya/luci-app-xray.git" >> feeds.conf.default
-          echo "src-git-full xray_core https://github.com/yichya/openwrt-xray.git" >> feeds.conf.default
-
       - name: Add custom patches
         run: |
           if [ "$(ls custom_repo/patches)" ]; then
