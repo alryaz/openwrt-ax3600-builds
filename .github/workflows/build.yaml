@@ -112,6 +112,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           echo "::group::Updating repositories"
           sudo apt update
@@ -128,6 +130,13 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-setuptools rsync swig unzip zlib1g-dev file wget
           echo "::endgroup::"
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          swap-size-mb: 1024
+          temp-reserve-mb: 100
+          root-reserve-mb: 1024
 
       # This intentionally uses the run command instead of a determined checkout
       # action because the checkout action severs reflog, causing the release
@@ -163,6 +172,51 @@ jobs:
             echo "::endgroup::"
           fi
 
+      - name: Configure ${{ matrix.item }} firmware image
+        run: |
+          cat \
+            "custom_repo/${{ env.CONFIG_FILE }}" \
+            "custom_repo/variations/${{ matrix.variation }}.config" \
+            > build_repo/.config
+          cd build_repo
+          make defconfig -j$(nproc)
+          CONFIG_HASH=$(md5sum $GITHUB_WORKSPACE/$CONFIG_FILE | awk '{print $1}')
+          echo "CONFIG_HASH=$CONFIG_HASH" >> $GITHUB_ENV
+
+      - name: Check caches
+        id: check-cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}-${{ env.CONFIG_HASH }}
+          restore-keys: ${{ needs.check_commits.outputs.latest_sha_remote }}-${{ needs.check_commits.outputs.latest_sha_nss_packages }}-${{ matrix.item }}
+          path: |
+            ./build_repo/.ccache
+            ./build_repo/staging_dir/host*
+            ./build_repo/staging_dir/tool*
+
+      - name: Update caches
+        run: |
+          if [ -d "./build_repo/staging_dir" ]; then
+            find "./build_repo/staging_dir" -type d -name "stamp" -not -path "*target*" | while read -r DIR; do
+              find "$DIR" -type f -exec touch {} +
+            done
+
+            mkdir -p ./build_repo/tmp && echo "1" > ./build_repo/tmp/.build
+
+            echo "toolchain skiped done!"
+          else
+            echo "caches missed!"
+          fi
+
+          if ${{ steps.check-cache.outputs.cache-hit != 'true' }}; then
+            CACHE_LIST=$(gh cache list --key ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{env.FIRMWARE_TAG}} | cut -f 1)
+            for CACHE_KEY in $CACHE_LIST; do
+               gh cache delete $CACHE_KEY
+            done
+
+            echo "caches cleanup done!"
+          fi
+
       - name: Update and install feeds
         run: |
           cd build_repo
@@ -172,15 +226,6 @@ jobs:
           echo "::group::Install feeds"
           ./scripts/feeds install -a
           echo "::endgroup::"
-
-      - name: Configure ${{ matrix.item }} firmware image
-        run: |
-          cat \
-            "custom_repo/${{ env.CONFIG_FILE }}" \
-            "custom_repo/variations/${{ matrix.variation }}.config" \
-            > build_repo/.config
-          cd build_repo
-          make defconfig -j$(nproc)
 
       - name: Include custom files
         run: |
@@ -308,6 +353,56 @@ jobs:
         with:
           name: build-error-{{ matrix.variation }}
           path: build_repo/build_error.log
+
+      - name: Optimize compilation directories
+        run: |
+          echo "::group::Retrieve starting directory sizes"
+          du -sh $OPENWRT_PATH/.ccache 2>/dev/null || echo "No .ccache directory found"
+          
+          if compgen -G "$OPENWRT_PATH/staging_dir/host*" > /dev/null; then
+            du -sh $OPENWRT_PATH/staging_dir/host* 2>/dev/null
+          else
+            echo "No host directories found"
+          fi
+          
+          if compgen -G "$OPENWRT_PATH/staging_dir/tool*" > /dev/null; then
+            du -sh $OPENWRT_PATH/staging_dir/tool* 2>/dev/null
+            echo "======== staging_dir/tool* Subdirectory Sizes ========"
+            for dir in "$OPENWRT_PATH/staging_dir/tool"*; do
+              echo "Subdirectories in: $dir"
+              du -sh "$dir"/* 2>/dev/null || echo "No subdirectories in $dir"
+              echo "---------------------------------"
+            done
+          else
+            echo "No tool directories found"
+          fi
+          echo "::endgroup::"
+      
+          echo "::group::Remove 'initial' directories under toolchain"
+          find "$OPENWRT_PATH/staging_dir/toolchain-"* -type d -name "initial" -exec rm -rf {} + 2>/dev/null || echo "No 'initial' directory found"
+          echo "::endgroup::"
+      
+          echo "::group::Display resulting directory sizes"
+          du -sh $OPENWRT_PATH/.ccache 2>/dev/null || echo "No .ccache directory found"
+      
+          if compgen -G "$OPENWRT_PATH/staging_dir/host*" > /dev/null; then
+            du -sh $OPENWRT_PATH/staging_dir/host* 2>/dev/null
+          else
+            echo "No host directories found"
+          fi
+      
+          if compgen -G "$OPENWRT_PATH/staging_dir/tool*" > /dev/null; then
+            du -sh $OPENWRT_PATH/staging_dir/tool* 2>/dev/null
+            echo "======== staging_dir/tool* Subdirectory Sizes After Cleanup ========"
+            for dir in "$OPENWRT_PATH/staging_dir/tool"*; do
+              echo "Subdirectories in: $dir"
+              du -sh "$dir"/* 2>/dev/null || echo "No subdirectories in $dir"
+              echo "---------------------------------"
+            done
+          else
+            echo "No tool directories found"
+          fi
+          echo "::endgroup::"
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -346,7 +441,7 @@ jobs:
 
             mv \
                 "openwrt-qualcommax-ipq807x-xiaomi_ax3600-squashfs-sysupgrade.bin" \
-                "../openwrt-xiaomi_ax3600-${variation}-sysupgrade.bin"
+                "../build_repo-xiaomi_ax3600-${variation}-sysupgrade.bin"
 
             cd ../
             rm -rf $directory/
