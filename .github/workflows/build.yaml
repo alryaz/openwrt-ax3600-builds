@@ -33,12 +33,6 @@ env:
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
   RELEASE_PREFIX: main-nss
-  XRAY_DATA_SOURCES: |
-    domain-list-community:v2fly/domain-list-community/dlc.dat
-    refilter-geosite:1andrevich/Re-filter-lists/geosite.dat
-    refilter-geoip:1andrevich/Re-filter-lists/geoip.dat
-    antifilter-geosite:1andrevich/antifilter-domain/geosite.dat
-    antifilter-geoip:1andrevich/antifilter-geoip/geoip.dat
 
 jobs:
   check_commits:
@@ -198,97 +192,6 @@ jobs:
           cd build_repo
           make defconfig -j$(nproc)
           echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
-
-      - name: Check supported features
-        id: check_supported_features
-        run: |
-          {
-              echo "xray=$(grep -q '^CONFIG_PACKAGE_xray-core=y' build_repo/.config && echo true || echo false)"
-          } >> $GITHUB_OUTPUT
-
-      - name: Download xray domain lists
-        if: |
-          (env.XRAY_DATA_SOURCES != '') &&
-          (steps.check_supported_features.outputs.xray == 'true')
-        run: |
-          # Read the XRAY_DATA_SOURCES environment variable
-          xray_has_url="false"
-          uci_script=build_repo/files/usr/bin/update-xray-data
-          mkdir -p "$(dirname "${uci_script}")"
-          {
-              echo "#!/bin/sh"
-              echo ""
-              echo "# Update Xray .dat files"
-              echo ""
-          } > "${uci_script}"
-          
-          keepd_path=build_repo/files/var/lib/keep.d/xray-data-sources
-          mkdir -p "$(dirname "${keepd_path}")"
-
-          if grep -q '^CONFIG_PACKAGE_curl=y' build_repo/.config; then
-              cmd="curl -o '%s' '%s'"
-          elif grep -q '^CONFIG_PACKAGE_wget-ssl=y' build_repo/.config; then
-              cmd="wget -O '%s' '%s'"
-          else
-              echo "::warning::Cowardly refusing to generate update script because no means to download found."
-              exit 0
-          fi
-          
-          while IFS= read -r entry; do
-              # Trim leading and trailing whitespace
-              entry=$(echo "$entry" | xargs)
-
-              # Skip empty lines
-              if [[ -z "$entry" ]]; then
-                  continue
-              fi
-
-              echo "::group::Processing \"$entry\""
-
-              # Trim whitespace from dest and url
-              dest=$(echo "${entry%%:*}" | xargs)
-              if [[ -z "$dest" ]]; then
-                echo "::error::Destination identifier is empty!" >&2
-                echo "::endgroup::"
-                exit 1
-              fi
-
-              url=$(echo "${entry#*:}" | xargs)
-              if [[ -z "$url" ]]; then
-                echo "::error::URL for \"$dest\" is empty!" >&2
-                echo "::endgroup::"
-                exit 1
-              fi
-
-              # If the URL does not contain "://", treat it as a github.ref_nameerence
-              if [[ "$url" != *"://"* ]]; then
-                  IFS='/' read -r -a parts <<< "$url"
-
-                  if [[ ${#parts[@]} -ne 3 ]]; then
-                    echo "::error::Invalid github.ref_name format: $url" >&2
-                    echo "::endgroup::"
-                    exit 1
-                  fi
-                  
-                  url="https://github.com/${parts[0]}/${parts[1]}/releases/latest/download/${parts[2]}"
-              fi
-
-              # Setup cron and keep.d
-              dest_path="/usr/share/xray/${dest}.dat"
-              printf "${cmd}\n" "${dest_path}" "${url}" >> "${uci_script}"
-              echo "${dest_path}" >> "${keepd_path}"
-
-              echo "Downloaded ${dest}.dat successfully."
-          done <<< "$XRAY_DATA_SOURCES"
-
-          chmod +x "${uci_script}"
-          echo "::group::UCI default script contents"
-          cat "${uci_script}"
-          echo "::endgroup::"
-
-          echo "::group::keep.d reboot save path"
-          cat "${keepd_path}"
-          echo "::endgroup::"
 
       - name: Include custom files
         run: |
