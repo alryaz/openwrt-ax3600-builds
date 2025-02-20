@@ -358,15 +358,27 @@ jobs:
       - name: Download dependencies
         run: cd build_repo && make download V=sc -j$(($(nproc)+1))
 
-      - name: Build the firmware image (multicore, verbose)
+      - name: Build the firmware image (multicore, unverbose)
         id: build_multiple_cores
-        run: cd build_repo && make world V=sc -j$(($(nproc)+1))
+        run: cd build_repo && make world -j$(($(nproc)+1))
 
-      - name: Build the firmware image (single core, verbose)
+      - name: Build the firmware image (single core, unverbose)
         if: failure() && steps.build_multiple_cores.conclusion == 'failure'
         id: build_single_core
         run: cd build_repo && make world V=sc -j1
 
+      - name: Build the firmware image (single core, verbose)
+        if: failure() && steps.build_single_core.conclusion == 'failure'
+        id: pin_down_error
+        run: cd build_repo && make world V=sc -j1 | tee build_error.log
+
+      - name: Upload error log as artifact
+        if: failure() && steps.pin_down_error.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-error-{{ matrix.variation }}
+          path: build_repo/build_error.log
+          
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
