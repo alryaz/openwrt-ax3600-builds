@@ -268,17 +268,18 @@ jobs:
           for directory in ipq807x-images-*; do
             cd $directory
             variation="${directory#*-*-}"
+            prefix="xiaomi_ax3600-${variation}-${{ env.RELEASE_PREFIX }}-${{ env.RELEASE_DATE }}"
             echo "::group::Processing images for variation: $variation"
             
             # zip -r $directory.zip *
             # mv $directory.zip ../
 
-            tar --zstd -cvf $directory.tar.zst *
-            mv $directory.tar.zst ../
+            tar --zstd -cvf "${prefix}-images.tar.zst" *
+            mv "${prefix}-images.tar.zst" ../
 
             mv \
                 "openwrt-qualcommax-ipq807x-xiaomi_ax3600-squashfs-sysupgrade.bin" \
-                "../build_repo-xiaomi_ax3600-${variation}-sysupgrade.bin"
+                "../${prefix}-sysupgrade.bin"
 
             cd ../
             rm -rf $directory/
