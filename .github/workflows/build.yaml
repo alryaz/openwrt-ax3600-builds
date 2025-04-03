@@ -173,6 +173,17 @@ jobs:
           echo "::group::Install feeds"
           ./scripts/feeds install -a
           echo "::endgroup::"
+
+      - name: Add Argon theme
+        run: |
+          echo "::group::Cloning Argon theme repository"
+          git clone https://github.com/jerrykuku/luci-theme-argon.git \
+            --single-branch --branch master
+          echo "::endgroup::"
+          echo "::group::Cloning Argon configurator application repository"
+          git clone https://github.com/jerrykuku/luci-app-argon-config.git \
+            --single-branch --branch master
+          echo "::endgroup::"
   
       - name: Add custom patches
         run: |
