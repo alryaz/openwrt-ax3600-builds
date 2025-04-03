@@ -262,6 +262,9 @@ jobs:
           path: firmware
           merge-multiple: false
 
+      - name: Get current date
+        run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
+
       - name: Format release uploads
         run: |
           cd firmware/
@@ -285,9 +288,6 @@ jobs:
             rm -rf $directory/
             echo "::endgroup::"
           done
-  
-      - name: Get current date
-        run: echo "RELEASE_DATE=$(date +%F)" >> $GITHUB_ENV
 
       - name: Delete current release assets
         uses: andreaswilli/delete-release-assets-action@main
