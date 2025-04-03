@@ -109,7 +109,7 @@ jobs:
       matrix:
         variation: ${{ fromJSON(needs.check_commits.outputs.variations) }}
       fail-fast: true
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Check umask prior to cloning
         run: |
@@ -129,7 +129,7 @@ jobs:
       - name: Checkout remote repository
         run: |
           umask 0022
-          git clone "https://github.com/${{ env.REMOTE_REPOSITORY }}.git" \
+          git clone "${GITHUB_SERVER_URL}/${{ env.REMOTE_REPOSITORY }}.git" \
             "build_repo" \
             --single-branch \
             --branch "${{ env.REMOTE_BRANCH }}"
@@ -177,11 +177,11 @@ jobs:
       - name: Add Argon theme
         run: |
           echo "::group::Cloning Argon theme repository"
-          git clone https://github.com/jerrykuku/luci-theme-argon.git \
+          git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git" \
             --single-branch --branch master
           echo "::endgroup::"
           echo "::group::Cloning Argon configurator application repository"
-          git clone https://github.com/jerrykuku/luci-app-argon-config.git \
+          git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" \
             --single-branch --branch master
           echo "::endgroup::"
   
@@ -227,8 +227,14 @@ jobs:
               "build_repo/files/"
           fi
 
-      - name: Download dependencies
-        run: umask 0022 && cd build_repo && make download V=sc -j$(($(nproc)+1))
+      - name: Download dependencies (multicore, unverbose)
+        id: download_multiple_cores
+        run: umask 0022 && cd build_repo && make download -j$(($(nproc)+1))
+
+      - name: Download dependencies (single core, verbose)
+        if: failure() && steps.download_multiple_cores.conclusion == 'failure'
+        id: download_single_core
+        run: umask 0022 && cd build_repo && make download V=sc -j1
 
       - name: Build the firmware image (multicore, unverbose)
         id: build_multiple_cores
