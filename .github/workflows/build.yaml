@@ -210,9 +210,26 @@ jobs:
             "custom_repo/${{ env.CONFIG_FILE }}" \
             "custom_repo/variations/${{ matrix.variation }}.config" \
             > build_repo/.config
+
+      - name: Upload pre-defaulted config as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-pre-{{ matrix.variation }}
+          path: build_repo/.config
+
+      - name: Apply default configuration of openwrt
+        run: |
+          umask 0022
           cd build_repo
           make defconfig -j$(nproc)
           echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
+
+      - name: Upload post-defaulted config as artifact
+        if: failure() && steps.pin_down_error.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-post-{{ matrix.variation }}
+          path: build_repo/.config
 
       - name: Include custom files
         run: |
