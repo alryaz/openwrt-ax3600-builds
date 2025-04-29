@@ -4,7 +4,6 @@ run-name: >-
   ${{ (github.event_name == 'workflow_dispatch' && 'manually') || (github.event_name == 'schedule' && 'on schedule') || (github.event_name == 'push' && 'on update') || 'unexpectedly' }}
   for reference
   ${{ (github.event_name == 'workflow_dispatch' && inputs.repository_ref != '') && inputs.repository_ref || github.ref_name }}
-  
 
 on:
   workflow_dispatch:
@@ -209,38 +208,22 @@ jobs:
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
             "custom_repo/variations/${{ matrix.variation }}.config" \
-            > build_repo/.config
-
-      - name: Upload pre-defaulted config as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          include-hidden-files: true
-          name: config-pre-${{ matrix.variation }}
-          path: build_repo/.config
-
-      - name: Apply default configuration of openwrt
-        run: |
-          umask 0022
-          cd build_repo
+            | tee .config .merged_config
           make defconfig -j$(nproc)
           echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
           # Also create a debug version for issues on upstream
           grep -Pi 'NSS_(?!DRV)|^(?!#)CONFIG_TARGET_(SUBTARGET|PROFILE|qualcommax)|^(?!#)CONFIG_(PACKAGE_kmod-qca-)|MEM_PROFILE' \
             .config > .issue_config
 
-      - name: Upload post-defaulted config as artifact
+      - name: Upload configs as artifact
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: config-post-${{ matrix.variation }}
-          path: build_repo/.config
-
-      - name: Upload issue-relevant config as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          include-hidden-files: true
-          name: config-issue-${{ matrix.variation }}
-          path: build_repo/.issue_config
+          name: configs-${{ matrix.variation }}
+          path: |
+            build_repo/.config
+            build_repo/.merged_config
+            build_repo/.issue_config
 
       - name: Include custom files
         run: |
