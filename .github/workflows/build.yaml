@@ -214,6 +214,7 @@ jobs:
       - name: Upload pre-defaulted config as artifact
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
           name: config-pre-{{ matrix.variation }}
           path: build_repo/.config
 
@@ -228,6 +229,7 @@ jobs:
         if: failure() && steps.pin_down_error.conclusion == 'failure'
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
           name: config-post-{{ matrix.variation }}
           path: build_repo/.config
 
