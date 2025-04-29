@@ -215,7 +215,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: config-pre-{{ matrix.variation }}
+          name: config-pre-${{ matrix.variation }}
           path: build_repo/.config
 
       - name: Apply default configuration of openwrt
@@ -224,14 +224,23 @@ jobs:
           cd build_repo
           make defconfig -j$(nproc)
           echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
+          # Also create a debug version for issues on upstream
+          grep -Pi 'NSS_(?!DRV)|^(?!#)CONFIG_TARGET_(SUBTARGET|PROFILE|qualcommax)|^(?!#)CONFIG_(PACKAGE_kmod-qca-)|MEM_PROFILE' \
+            .config > .issue_config
 
       - name: Upload post-defaulted config as artifact
-        if: failure() && steps.pin_down_error.conclusion == 'failure'
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
-          name: config-post-{{ matrix.variation }}
+          name: config-post-${{ matrix.variation }}
           path: build_repo/.config
+
+      - name: Upload issue-relevant config as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          include-hidden-files: true
+          name: config-issue-${{ matrix.variation }}
+          path: build_repo/.issue_config
 
       - name: Include custom files
         run: |
