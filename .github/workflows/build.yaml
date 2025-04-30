@@ -205,15 +205,22 @@ jobs:
       - name: Configure ${{ matrix.variation }} firmware image
         run: |
           umask 0022
+          echo "::group::Merging configurations"
           cat \
             "custom_repo/${{ env.CONFIG_FILE }}" \
             "custom_repo/variations/${{ matrix.variation }}.config" \
             | tee .config .merged_config
+          echo "::endgroup::"
+          echo "::group::Updating with default values"
           make defconfig -j$(nproc)
-          echo "CONFIG_HASH=$(md5sum build_repo/.config | awk '{print $1}')" | tee -a $GITHUB_ENV
+          echo "CONFIG_HASH=$(md5sum .config | awk '{print $1}')" | tee -a $GITHUB_ENV
+          cat .config
+          echo "::endgroup::"
+          echo "::group::Preparing issue template"
           # Also create a debug version for issues on upstream
           grep -Pi 'NSS_(?!DRV)|^(?!#)CONFIG_TARGET_(SUBTARGET|PROFILE|qualcommax)|^(?!#)CONFIG_(PACKAGE_kmod-qca-)|MEM_PROFILE' \
             .config > .issue_config
+          echo "::endgroup::"
 
       - name: Upload configs as artifact
         uses: actions/upload-artifact@v4
