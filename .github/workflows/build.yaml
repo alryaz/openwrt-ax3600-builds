@@ -205,10 +205,11 @@ jobs:
       - name: Configure ${{ matrix.variation }} firmware image
         run: |
           umask 0022
+          cd build_repo
           echo "::group::Merging configurations"
           cat \
-            "custom_repo/${{ env.CONFIG_FILE }}" \
-            "custom_repo/variations/${{ matrix.variation }}.config" \
+            "../custom_repo/${{ env.CONFIG_FILE }}" \
+            "../custom_repo/variations/${{ matrix.variation }}.config" \
             | tee .config .merged_config
           echo "::endgroup::"
           echo "::group::Updating with default values"
