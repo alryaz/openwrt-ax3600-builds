@@ -162,6 +162,16 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget libelf-dev
           echo "::endgroup::"
 
+          echo "::group::Cleaning up"
+          sudo df -h
+          sudo apt-get clean
+          sudo apt-get remove --purge -y 'php.*' || echo "No PHP present"
+          sudo apt-get remove --purge -y '^dotnet-.*' || echo "No .NET present"
+          sudo apt-get remove --purge -y mono-devel || echo "No mono present"
+          sudo rm -rf /usr/share/dotnet/ || echo "No dotnet share present"
+          sudo df -h
+          echo "::endgroup::"
+
       - name: Update and install feeds
         run: |
           umask 0022
