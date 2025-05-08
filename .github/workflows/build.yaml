@@ -161,11 +161,9 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Perform en-masse APT removal"
-          sudo apt-get remove --purge -y '^ghc-8.*' || echo "No GHC present"
-          sudo apt-get remove --purge -y 'php.*' || echo "No PHP present"
-          sudo apt-get remove --purge -y '^dotnet-.*' || echo "No .NET present"
-          sudo apt-get remove --purge -y mono-devel || echo "No mono present"
-          sudo apt-get remove --purge -y '^llvm-.*' || echo "No LLVM present"
+          for pattern in '^ghc-8.*' 'php.*' '^dotnet-.*' '^llvm-.*' azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell mono-devel microsoft-edge-stable; do
+              sudo apt-get remove --purge -y "$pattern" || echo "Packages matching '$pattern' not found"
+          done
           sudo apt-get autoremove --purge -y
           sudo rm -rf /usr/share/dotnet/ || echo "No dotnet share present"
           echo "::endgroup::"
