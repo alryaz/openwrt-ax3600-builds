@@ -28,6 +28,10 @@ env:
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_BRANCH: NSS-12.5-K6.x
 
+  # AmneziaWG repository
+  AMNEZIA_WG_REPOSITORY: Slava-Shchipunov/awg-openwrt
+  AMNEZIA_WG_BRANCH: master
+
   # Other sources
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
@@ -201,6 +205,13 @@ jobs:
           echo "::group::Cloning Argon configurator application repository"
           git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" \
             --single-branch --branch master
+          echo "::endgroup::"
+
+      - name: Add Amnezia WG
+        run: |
+          echo "::group::Cloning Amnezia WG repository"
+          git clone "${GITHUB_SERVER_URL}/${AMNEZIA_WG_REPOSITORY}" \
+            --single-branch --branch ${AMNEZIA_WG_BRANCH}
           echo "::endgroup::"
   
       - name: Add custom patches
