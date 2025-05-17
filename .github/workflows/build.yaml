@@ -28,10 +28,6 @@ env:
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_BRANCH: NSS-12.5-K6.x
 
-  # AmneziaWG repository
-  AMNEZIA_WG_REPOSITORY: Slava-Shchipunov/awg-openwrt
-  AMNEZIA_WG_BRANCH: master
-
   # Other sources
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
@@ -185,6 +181,32 @@ jobs:
           sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
           echo "::endgroup::"
 
+      - name: Add custom repositories
+        run: |
+          umask 0022
+          cd build_repo
+
+          # Clear existing config if present
+          echo -n > .config
+
+          # Add custom repositories
+          i=1
+          echo "## Disable custom repo updates" >> .config
+          while read -r repo; do
+            [ -z "$repo" ] && continue
+            echo "src-git customfeed$i ${GITHUB_SERVER_URL}/$repo.git" | tee -a feeds.conf.default
+            echo "CONFIG_FEED_customfeed$i=n" >> .config
+            i=$((i + 1))
+          done <<EOF
+          jerrykuku/luci-theme-argon
+          jerrykuku/luci-app-argon-config
+          Slava-Shchipunov/awg-openwrt
+          EOF
+          echo >> .config
+
+          # Enable feeds
+          mv feeds.conf.default feeds.conf
+
       - name: Update and install feeds
         run: |
           umask 0022
@@ -196,24 +218,6 @@ jobs:
           ./scripts/feeds install -a
           echo "::endgroup::"
 
-      - name: Add Argon theme
-        run: |
-          echo "::group::Cloning Argon theme repository"
-          git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git" \
-            --single-branch --branch master
-          echo "::endgroup::"
-          echo "::group::Cloning Argon configurator application repository"
-          git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" \
-            --single-branch --branch master
-          echo "::endgroup::"
-
-      - name: Add Amnezia WG
-        run: |
-          echo "::group::Cloning Amnezia WG repository"
-          git clone "${GITHUB_SERVER_URL}/${AMNEZIA_WG_REPOSITORY}" \
-            --single-branch --branch ${AMNEZIA_WG_BRANCH}
-          echo "::endgroup::"
-  
       - name: Add custom patches
         run: |
           if [ "$(ls custom_repo/patches)" ]; then
@@ -240,7 +244,7 @@ jobs:
           cat \
             "../custom_repo/${{ env.CONFIG_FILE }}" \
             "../custom_repo/variations/${{ matrix.variation }}.config" \
-            | tee .config .merged_config
+            | tee -a .config .merged_config
           echo "::endgroup::"
           echo "::group::Updating with default values"
           make defconfig -j$(nproc)
