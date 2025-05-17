@@ -189,13 +189,23 @@ jobs:
           # Clear existing config if present
           echo -n > .config
 
+          # Prepare base for feeds
+          if [ -f feeds.conf ]; then
+            echo "Using feeds.conf as base"
+          else
+            echo "Using feeds.conf.default as base"
+            mv feeds.conf.default feeds.conf
+          fi
+          
           # Add custom repositories
           i=1
           echo "## Disable custom repo updates" >> .config
           while read -r repo; do
             [ -z "$repo" ] && continue
-            echo "src-git customfeed$i ${GITHUB_SERVER_URL}/$repo.git" | tee -a feeds.conf.default
-            echo "CONFIG_FEED_customfeed$i=n" >> .config
+            feedname=customfeed$i
+            echo "$repo => $feedname"
+            echo "src-git ${feedname} ${GITHUB_SERVER_URL}/$repo.git" | tee -a feeds.conf
+            echo "CONFIG_FEED_${feedname}=n" | tee -a .config
             i=$((i + 1))
           done <<EOF
           jerrykuku/luci-theme-argon
@@ -203,9 +213,6 @@ jobs:
           Slava-Shchipunov/awg-openwrt
           EOF
           echo >> .config
-
-          # Enable feeds
-          mv feeds.conf.default feeds.conf
 
       - name: Update and install feeds
         run: |
