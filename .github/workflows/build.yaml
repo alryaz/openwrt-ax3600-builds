@@ -196,7 +196,7 @@ jobs:
           ./scripts/feeds install -a
           echo "::endgroup::"
           echo "::group::Install Argon theme (with plugin)"
-          cd packages
+          cd openwrt/package
           rm -rf luci-theme-argon; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git" luci-theme-argon
           rm -rf luci-app-argon-config; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" luci-app-argon-config
           echo "::endgroup::"
