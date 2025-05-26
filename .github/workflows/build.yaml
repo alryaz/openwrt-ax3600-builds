@@ -187,7 +187,7 @@ jobs:
           umask 0022
           cd build_repo
           echo "::group::Add AmneziaWG feed"
-          echo "src-git ${GITHUB_SERVER_URL}/Slava-Shchipunov/awg-openwrt.git" >> feeds.conf.default
+          echo "src-git amneziawg ${GITHUB_SERVER_URL}/Slava-Shchipunov/awg-openwrt.git" >> feeds.conf.default
           echo "::endgroup::"
           echo "::group::Update feeds"
           ./scripts/feeds update -a
@@ -197,8 +197,8 @@ jobs:
           echo "::endgroup::"
           echo "::group::Install Argon theme (with plugin)"
           cd packages
-          rm -rf luci-theme-argon; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git"
-          rm -rf luci-app-argon-config; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git"
+          rm -rf luci-theme-argon; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git" luci-theme-argon
+          rm -rf luci-app-argon-config; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" luci-app-argon-config
           echo "::endgroup::"
 
       - name: Add custom patches
