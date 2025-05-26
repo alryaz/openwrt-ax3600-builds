@@ -181,38 +181,38 @@ jobs:
           sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n | tail -n 100
           echo "::endgroup::"
 
-      - name: Add custom repositories
-        run: |
-          umask 0022
-          cd build_repo
+      # - name: Add custom repositories
+      #   run: |
+      #     umask 0022
+      #     cd build_repo
 
-          # Clear existing config if present
-          echo -n > .config
+      #     # Clear existing config if present
+      #     echo -n > .config
 
-          # Prepare base for feeds
-          if [ -f feeds.conf ]; then
-            echo "Using feeds.conf as base"
-          else
-            echo "Using feeds.conf.default as base"
-            mv feeds.conf.default feeds.conf
-          fi
+      #     # Prepare base for feeds
+      #     if [ -f feeds.conf ]; then
+      #       echo "Using feeds.conf as base"
+      #     else
+      #       echo "Using feeds.conf.default as base"
+      #       mv feeds.conf.default feeds.conf
+      #     fi
           
-          # Add custom repositories
-          i=1
-          echo "## Disable custom repo updates" >> .config
-          while read -r repo; do
-            [ -z "$repo" ] && continue
-            feedname=customfeed$i
-            echo "$repo => $feedname"
-            echo "src-git ${feedname} ${GITHUB_SERVER_URL}/$repo.git" | tee -a feeds.conf
-            echo "CONFIG_FEED_${feedname}=n" | tee -a .config
-            i=$((i + 1))
-          done <<EOF
-          jerrykuku/luci-theme-argon
-          jerrykuku/luci-app-argon-config
-          Slava-Shchipunov/awg-openwrt
-          EOF
-          echo >> .config
+      #     # Add custom repositories
+      #     i=1
+      #     echo "## Disable custom repo updates" >> .config
+      #     while read -r repo; do
+      #       [ -z "$repo" ] && continue
+      #       feedname=customfeed$i
+      #       echo "$repo => $feedname"
+      #       echo "src-git ${feedname} ${GITHUB_SERVER_URL}/$repo.git" | tee -a feeds.conf
+      #       echo "CONFIG_FEED_${feedname}=n" | tee -a .config
+      #       i=$((i + 1))
+      #     done <<EOF
+      #     jerrykuku/luci-theme-argon
+      #     jerrykuku/luci-app-argon-config
+      #     Slava-Shchipunov/awg-openwrt
+      #     EOF
+      #     echo >> .config
 
       - name: Update and install feeds
         run: |
