@@ -159,6 +159,7 @@ jobs:
 
           if [ "$current_commit" != "$target_commit" ]; then
             echo "::notice::Reverting repository to specific commit: $target_commit"
+            git fetch origin "$target_commmit"
             git checkout --force "$target_commit"
           else
             echo "Repository already at target commit."
