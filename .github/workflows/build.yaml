@@ -16,6 +16,10 @@ on:
         description: Build variations, comma-separated
         type: string
         default: ''
+      remote_ref:
+        description: Remote repository commit (with OpenWRT source) 
+        type: string
+        default: ''
   schedule:
     - cron: "0 12 * * *"
 
@@ -40,7 +44,7 @@ jobs:
     outputs:
       variations: ${{ steps.save_variations.outputs.variations }}
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
-      latest_sha_remote: ${{ steps.check_commits.outputs.latest_sha_remote }}
+      latest_sha_remote: ${{ steps.override_remote_ref.outputs.latest_sha_remote }}
       latest_sha_nss_packages: ${{ steps.check_commits.outputs.latest_sha_nss_packages }}
     steps:
       - name: Checkout repository
@@ -95,6 +99,16 @@ jobs:
           done
           echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
 
+      - name: Override latest_sha_remote if input provided
+        id: override_remote_ref
+        run: |
+          if [ -n "${{ inputs.remote_ref }}" ]; then
+            echo "Overriding latest_sha_remote with input: ${{ inputs.remote_ref }}"
+            echo "latest_sha_remote=${{ inputs.remote_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "latest_sha_remote=${{ steps.check_commits.outputs.latest_sha_remote }}" >> $GITHUB_OUTPUT
+          fi
+
   build:
     name: "Build variation: ${{ matrix.variation }}"
     if: |
@@ -135,6 +149,20 @@ jobs:
 
           echo "ACLs on build repository after cloning:"
           getfacl -d build_repo
+
+          cd build_repo
+          current_commit=$(git rev-parse HEAD)
+          target_commit="${{ needs.check_commits.outputs.latest_sha_remote }}"
+
+          echo "Current commit: $current_commit"
+          echo "Target commit:  $target_commit"
+
+          if [ "$current_commit" != "$target_commit" ]; then
+            echo "::notice::Reverting repository to specific commit: $target_commit"
+            git reset --hard "$target_commit"
+          else
+            echo "Repository already at target commit."
+          fi
 
       - name: Checkout current repository
         uses: actions/checkout@v4
