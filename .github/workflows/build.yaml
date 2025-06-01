@@ -16,10 +16,6 @@ on:
         description: Build variations, comma-separated
         type: string
         default: ''
-      remote_ref:
-        description: Remote repository commit (with OpenWRT source) 
-        type: string
-        default: ''
   schedule:
     - cron: "0 12 * * *"
 
@@ -44,7 +40,7 @@ jobs:
     outputs:
       variations: ${{ steps.save_variations.outputs.variations }}
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
-      latest_sha_remote: ${{ steps.override_remote_ref.outputs.latest_sha_remote }}
+      latest_sha_remote: ${{ steps.check_commits.outputs.latest_sha_remote }}
       latest_sha_nss_packages: ${{ steps.check_commits.outputs.latest_sha_nss_packages }}
     steps:
       - name: Checkout repository
@@ -90,23 +86,14 @@ jobs:
                   echo "::error::SHA not found on ${prefix}"
                   exit 1
               fi
-              echo "latest_sha_${postfix}=${latest_sha}" | tee -a $GITHUB_OUTPUT
+              echo "Latest ${prefix} commit: ${latest_sha}"
+              echo "latest_sha_${postfix}=${latest_sha}" >> $GITHUB_OUTPUT
               echo $release_body | grep -q "${latest_sha}" && continue
               echo "::notice::New commits detected on ${postfix} repository!"
               new_commits="true"
               echo "::endgroup::"
           done
           echo "new_commits=${new_commits}" >> $GITHUB_OUTPUT
-
-      - name: Override latest_sha_remote if input provided
-        id: override_remote_ref
-        run: |
-          if [ -n "${{ inputs.remote_ref }}" ]; then
-            echo "Overriding latest_sha_remote with input: ${{ inputs.remote_ref }}"
-            echo "latest_sha_remote=${{ inputs.remote_ref }}" >> $GITHUB_OUTPUT
-          else
-            echo "latest_sha_remote=${{ steps.check_commits.outputs.latest_sha_remote }}" >> $GITHUB_OUTPUT
-          fi
 
   build:
     name: "Build variation: ${{ matrix.variation }}"
@@ -148,11 +135,6 @@ jobs:
 
           echo "ACLs on build repository after cloning:"
           getfacl -d build_repo
-
-          cd build_repo
-          short_sha="$(echo '${{ needs.check_commits.outputs.latest_sha_remote }}' | cut -c1-7)"
-          echo "Resetting repository to short SHA: ${short_sha}"
-          git reset --hard "${short_sha}"
 
       - name: Checkout current repository
         uses: actions/checkout@v4
