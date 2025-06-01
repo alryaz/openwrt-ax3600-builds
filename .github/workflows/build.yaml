@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Save variations
         id: save_variations
         run: |
@@ -203,11 +203,10 @@ jobs:
 
       - name: Add custom patches
         run: |
-          if [ "$(ls custom_repo/patches)" ]; then
+          if [ -d "custom_repo/patches" ] && [ "$(ls -A custom_repo/patches 2>/dev/null)" ]; then
             umask 0022
-            mv custom_repo/patches/* build_repo/
             cd build_repo
-            for patch in *.patch; do
+            for patch in ../custom_repo/patches/*.patch; do
               echo "::group::Applying patch '$patch'"
               git apply --verbose "$patch"
               echo "=== Diff after applying $patch ==="
@@ -218,7 +217,7 @@ jobs:
             git status
             echo "::endgroup::"
           fi
-  
+
       - name: Configure ${{ matrix.variation }} firmware image
         run: |
           umask 0022
