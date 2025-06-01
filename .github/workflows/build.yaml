@@ -90,8 +90,7 @@ jobs:
                   echo "::error::SHA not found on ${prefix}"
                   exit 1
               fi
-              echo "Latest ${prefix} commit: ${latest_sha}"
-              echo "latest_sha_${postfix}=${latest_sha}" >> $GITHUB_OUTPUT
+              echo "latest_sha_${postfix}=${latest_sha}" | tee -a $GITHUB_OUTPUT
               echo $release_body | grep -q "${latest_sha}" && continue
               echo "::notice::New commits detected on ${postfix} repository!"
               new_commits="true"
@@ -151,19 +150,9 @@ jobs:
           getfacl -d build_repo
 
           cd build_repo
-          current_commit=$(git rev-parse HEAD)
-          target_commit="${{ needs.check_commits.outputs.latest_sha_remote }}"
-
-          echo "Current commit: $current_commit"
-          echo "Target commit:  $target_commit"
-
-          if [ "$current_commit" != "$target_commit" ]; then
-            echo "::notice::Reverting repository to specific commit: $target_commit"
-            git fetch origin "$target_commmit"
-            git checkout --force "$target_commit"
-          else
-            echo "Repository already at target commit."
-          fi
+          short_sha="$(echo '${{ needs.check_commits.outputs.latest_sha_remote }}' | cut -c1-7)"
+          echo "Resetting repository to short SHA: ${short_sha}"
+          git reset --hard "${short_sha}"
 
       - name: Checkout current repository
         uses: actions/checkout@v4
