@@ -201,7 +201,7 @@ jobs:
           rm -rf luci-app-argon-config; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" luci-app-argon-config
           echo "::endgroup::"
           echo "::group::Patching argon dark theme for luci-mod-dashboard"
-          cd luci-argon-theme
+          cd luci-theme-argon
           git remote add alryaz "${GITHUB_SERVER_URL}/alryaz/luci-theme-argon.git"
           git fetch alryaz patch-1
           git stash push --include-untracked --message "backup-before-alryaz-merge"
