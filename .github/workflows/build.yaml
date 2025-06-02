@@ -22,7 +22,7 @@ on:
 env:
   # Upstream OpenWRT repository
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
-  REMOTE_BRANCH: main-nss
+  REMOTE_BRANCH: main-nss-6.6
 
   # Packages repository
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
@@ -31,7 +31,7 @@ env:
   # Other sources
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
-  RELEASE_PREFIX: main-nss-6.6
+  RELEASE_PREFIX: main-nss
 
 jobs:
   check_commits:
