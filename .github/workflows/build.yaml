@@ -31,7 +31,7 @@ env:
   # Other sources
   CONFIG_FILE: ax3600.config
   CUSTOM_FILES_PATH: files
-  RELEASE_PREFIX: main-nss
+  RELEASE_PREFIX: main-nss-6.6
 
 jobs:
   check_commits:
