@@ -36,7 +36,7 @@ env:
 jobs:
   check_commits:
     name: Check for new commits
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     outputs:
       variations: ${{ steps.save_variations.outputs.variations }}
       new_commits: ${{ steps.check_commits.outputs.new_commits }}
@@ -108,7 +108,7 @@ jobs:
       matrix:
         variation: ${{ fromJSON(needs.check_commits.outputs.variations) }}
       fail-fast: true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Check umask prior to cloning
         run: |
@@ -305,7 +305,7 @@ jobs:
     if: |
       (needs.build.result == 'success') &&
       ((inputs.repository_ref || github.ref_name) == 'main')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
