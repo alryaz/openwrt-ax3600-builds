@@ -200,24 +200,6 @@ jobs:
           rm -rf luci-theme-argon; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-theme-argon.git" luci-theme-argon
           rm -rf luci-app-argon-config; git clone "${GITHUB_SERVER_URL}/jerrykuku/luci-app-argon-config.git" luci-app-argon-config
           echo "::endgroup::"
-          echo "::group::Patching argon dark theme for luci-mod-dashboard"
-          cd luci-theme-argon
-          git config user.name "tempuser"
-          git config user.email "temp@temp.temp"
-          git remote add alryaz "${GITHUB_SERVER_URL}/alryaz/luci-theme-argon.git"
-          git fetch alryaz patch-1
-          git stash push --include-untracked --message "backup-before-alryaz-merge"
-          if git merge --no-commit --no-ff alryaz/patch-1; then
-            git commit -m "Merged alryaz/patch-1"
-            git stash drop stash@{0} || true
-          else
-            echo "::warning::Could not fix Argon theme's luci-mod-dashboard dark mode. Skipping..."
-            git merge --abort || true
-            git reset --hard
-            git clean -fd
-            git stash pop || true
-          fi
-          echo "::endgroup::"
 
       - name: Add custom patches
         run: |
