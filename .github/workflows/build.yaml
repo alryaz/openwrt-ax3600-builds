@@ -22,7 +22,7 @@ on:
 env:
   # Upstream OpenWRT repository
   REMOTE_REPOSITORY: qosmio/openwrt-ipq
-  REMOTE_BRANCH: main-nss-6.6
+  REMOTE_BRANCH: main-nss
 
   # Packages repository
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
