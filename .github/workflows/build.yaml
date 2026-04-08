@@ -188,11 +188,10 @@ jobs:
           echo "KBUILD_BUILD_USER=builder" >> "$GITHUB_ENV"
           echo "KBUILD_BUILD_HOST=github" >> "$GITHUB_ENV"
 
-      - name: Build
+      - name: Download sources
         working-directory: openwrt
         run: |
           set -euo pipefail
-
           echo "Starting download..."
           for attempt in 1 2 3; do
             make download -j"$(nproc)" V=s && break
@@ -200,13 +199,43 @@ jobs:
             sleep 5
           done
 
-          echo "Starting build..."
-          if ! make -j"$(nproc)"; then
-            echo "Build failed, retrying with single thread for debugging..."
-            make -j1 V=s
+      - name: Build multithreaded
+        id: build_mt
+        working-directory: openwrt
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)"
+
+      - name: Build single threaded
+        id: build_st
+        if: steps.build_mt.outcome != 'success'
+        working-directory: openwrt
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          make -j1
+
+      - name: Build single threaded with verbosity
+        id: build_st_verbose
+        if: steps.build_mt.outcome != 'success' && steps.build_st.outcome != 'success'
+        working-directory: openwrt
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          make -j1 V=s
+
+      - name: Mark build as successful if any build succeeded
+        run: |
+          if [ "${{ steps.build_mt.outcome }}" != "success" ] && \
+             [ "${{ steps.build_st.outcome }}" != "success" ] && \
+             [ "${{ steps.build_st_verbose.outcome }}" != "success" ]; then
+            echo "All builds failed."
+            exit 1
           fi
 
       - name: Upload artifacts
+        if: success()
         uses: actions/upload-artifact@v7
         with:
           name: ipq807x-images
@@ -215,6 +244,7 @@ jobs:
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
       - name: Publish release
+        if: success()
         id: release
         run: |
           set -euo pipefail
@@ -246,6 +276,7 @@ jobs:
           gh release view "$tag_name" || echo "WARNING: Release not found immediately after creation!"
 
       - name: Delete older releases
+        if: success()
         env:
           KEEP: ${{ env.RELEASES_TO_KEEP }}
           CURRENT: ${{ steps.release.outputs.release_tag }}
