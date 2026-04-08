@@ -19,6 +19,8 @@ env:
   REMOTE_BRANCH: main-nss
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
+  AMNEZIAWG_REPOSITORY: Slava-Shchipunov/awg-openwrt
+  AMNEZIAWG_BRANCH: master
 
   # Build Configuration
   CONFIG_FILE: ax3600.config
@@ -51,6 +53,7 @@ jobs:
           # Fetch upstream SHAs
           main_sha=$(gh api "repos/${REMOTE_REPOSITORY}/commits/${REMOTE_BRANCH}" --jq .sha)
           nss_sha=$(gh api "repos/${NSS_PACKAGES_REPOSITORY}/commits/${NSS_PACKAGES_REPOSITORY_BRANCH}" --jq .sha)
+          awg_sha=$(gh api "repos/${AMNEZIAWG_REPOSITORY}/commits/${AMNEZIAWG_BRANCH}" --jq .sha)
 
           # Get latest release body safely
           latest_release_body=$(gh release view --repo "${GITHUB_REPOSITORY}" --json body --jq .body 2>/dev/null || echo "")
@@ -58,6 +61,7 @@ jobs:
           # Determine if build is required
           build_required=true
           if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]] && \
+             [[ "$latest_release_body" == *"$awg_sha"* ]] && \
              [[ "$latest_release_body" == *"$main_sha"* ]] && \
              [[ "$latest_release_body" == *"$nss_sha"* ]]; then
             build_required=false
@@ -66,11 +70,13 @@ jobs:
           echo "Build required: $build_required"
           echo "Main SHA: $main_sha"
           echo "NSS SHA: $nss_sha"
+          echo "AWG SHA: $awg_sha"
 
           # Output results
           echo "build_required=$build_required" >> "$GITHUB_OUTPUT"
           echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
           echo "nss_sha=$nss_sha" >> "$GITHUB_OUTPUT"
+          echo "awg_sha=$awg_sha" >> "$GITHUB_OUTPUT"
 
   build_firmware:
     name: Build Firmware
@@ -86,6 +92,7 @@ jobs:
     env:
       MAIN_SHA: ${{ needs.check_updates.outputs.main_sha }}
       NSS_SHA: ${{ needs.check_updates.outputs.nss_sha }}
+      AWG_SHA: ${{ needs.check_updates.outputs.awg_sha }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Install dependencies
@@ -129,12 +136,15 @@ jobs:
           fi
           echo "src-git qosmio https://github.com/qosmio/packages-extra" >> feeds.conf
           echo "src-git sqm_nss https://github.com/JuliusBairaktaris/sqm-scripts-nss" >> feeds.conf
+          echo "src-git amneziawg https://github.com/${AMNEZIAWG_REPOSITORY}" >> feeds.conf
 
           # Update and install feeds
           ./scripts/feeds update qosmio
           ./scripts/feeds install -a -p qosmio
           ./scripts/feeds update sqm_nss
           ./scripts/feeds install -a -p sqm_nss
+          ./scripts/feeds update amneziawg
+          ./scripts/feeds install -a -p amneziawg
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -146,6 +156,7 @@ jobs:
           sed -i 's/^CONFIG_FEED_luci_extra=.*/# CONFIG_FEED_luci_extra is not set/' .config
           sed -i 's/^CONFIG_FEED_qosmio=.*/# CONFIG_FEED_qosmio is not set/' .config
           sed -i 's/^CONFIG_FEED_sqm_nss=.*/# CONFIG_FEED_sqm_nss is not set/' .config
+          sed -i 's/^CONFIG_FEED_amneziawg=.*/# CONFIG_FEED_amneziawg is not set/' .config
 
           # Add custom files
           if [ -d "../builder_repo/${CUSTOM_FILES_PATH}" ]; then
@@ -209,6 +220,7 @@ jobs:
             echo "- **Date**: $date"
             echo "- **Main Commit**: \`${{ needs.check_updates.outputs.main_sha }}\`"
             echo "- **NSS Commit**: \`${{ needs.check_updates.outputs.nss_sha }}\`"
+            echo "- **AmneziaWG Commit**: \`${{ needs.check_updates.outputs.awg_sha }}\`"
             echo "- **Trigger**: \`${{ github.event_name }}\`"
           } > release_notes.md
 
