@@ -46,6 +46,8 @@ jobs:
       build_required: ${{ steps.check.outputs.build_required }}
       main_sha: ${{ steps.check.outputs.main_sha }}
       nss_sha: ${{ steps.check.outputs.nss_sha }}
+      awg_sha: ${{ steps.check.outputs.awg_sha }}
+      xrayapp_sha: ${{ steps.check.outputs.xrayapp_sha }}
     steps:
       - name: Check upstream changes
         id: check
