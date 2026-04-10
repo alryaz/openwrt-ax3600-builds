@@ -136,6 +136,7 @@ jobs:
           path: builder_repo
 
       - name: Prepare build environment
+        id: prepare_build_environment
         working-directory: openwrt
         run: |
           set -euo pipefail
@@ -246,6 +247,15 @@ jobs:
             echo "All builds failed."
             exit 1
           fi
+
+      - name: Upload logs
+        if: ${{ always() && steps.prepare_build_environment.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: logs
+          path: logs/
+          if-no-files-found: warn
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
       - name: Upload artifacts
         if: success()
