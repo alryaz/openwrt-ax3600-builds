@@ -164,10 +164,6 @@ jobs:
           ./scripts/feeds install -a -p qosmio
           ./scripts/feeds update sqm_nss
           ./scripts/feeds install -a -p sqm_nss
-          ./scripts/feeds update amneziawg
-          ./scripts/feeds install -a -p amneziawg
-          ./scripts/feeds update luci_app_xray
-          ./scripts/feeds install -a -p luci_app_xray
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
