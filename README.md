@@ -2,14 +2,15 @@
 
 ### Automated OpenWrt Firmware with NSS Hardware Acceleration for Xiaomi AX3600 (IPQ807x)
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/JuliusBairaktaris/Qualcommax_NSS_Builder/build.yaml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/actions/workflows/build.yaml)
-[![License](https://img.shields.io/github/license/JuliusBairaktaris/Qualcommax_NSS_Builder?style=flat-square&label=License)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/JuliusBairaktaris/Qualcommax_NSS_Builder?style=flat-square&logo=github&label=Stars)](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/stargazers)
-[![Last Commit](https://img.shields.io/github/last-commit/JuliusBairaktaris/Qualcommax_NSS_Builder?style=flat-square&label=Last%20Commit)](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/commits/main)
-[![Downloads](https://img.shields.io/github/downloads/JuliusBairaktaris/Qualcommax_NSS_Builder/total?style=flat-square&logo=github&label=Downloads)](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/alryaz/openwrt-ax3600-builds/build.yaml?branch=main&style=flat-square&logo=github&label=Build)](https://github.com/alryaz/openwrt-ax3600-builds/actions/workflows/build.yaml)
+[![License](https://img.shields.io/github/license/alryaz/openwrt-ax3600-builds?style=flat-square&label=License)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/alryaz/openwrt-ax3600-builds?style=flat-square&logo=github&label=Stars)](https://github.com/alryaz/openwrt-ax3600-builds/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/alryaz/openwrt-ax3600-builds?style=flat-square&label=Last%20Commit)](https://github.com/alryaz/openwrt-ax3600-builds/commits/main)
+[![Downloads](https://img.shields.io/github/downloads/alryaz/openwrt-ax3600-builds/total?style=flat-square&logo=github&label=Downloads)](https://github.com/alryaz/openwrt-ax3600-builds/releases/latest)
 
 Pre-built, hardened OpenWrt firmware images for the **Xiaomi AX3600** with full **Qualcomm NSS (Network Subsystem) hardware offloading** — delivering **2-5x network throughput** compared to stock CPU-based packet processing. Builds run automatically via GitHub Actions against the latest [qosmio/openwrt-ipq](https://github.com/qosmio/openwrt-ipq) sources. Just download and flash.
 
+> :star: Forked from: [JuliusBairaktaris/Qualcommax_NSS_Builder](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder)
 ---
 
 ## Why NSS?
@@ -68,7 +69,7 @@ The Qualcomm IPQ807x SoC contains dedicated **Network Subsystem (NSS)** cores de
 
 ### Download
 
-Grab the latest sysupgrade image from the [Releases page](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/releases/latest).
+Grab the latest sysupgrade image from the [Releases page](https://github.com/alryaz/openwrt-ax3600-builds/releases/latest).
 
 ### Flash via LuCI (Web UI)
 
@@ -190,7 +191,7 @@ Dropbear does not support post-quantum key exchange algorithms (ML-KEM, sntrup76
 
 ### How do I update to a newer build?
 
-Download the latest `*-sysupgrade.bin` from the [Releases page](https://github.com/JuliusBairaktaris/Qualcommax_NSS_Builder/releases/latest) and flash it via LuCI or CLI. Settings are preserved during sysupgrade unless you use the `-n` flag.
+Download the latest `*-sysupgrade.bin` from the [Releases page](https://github.com/alryaz/openwrt-ax3600-builds/releases/latest) and flash it via LuCI or CLI. Settings are preserved during sysupgrade unless you use the `-n` flag.
 
 ### Why are builds triggered every 2 hours?
 
@@ -219,6 +220,7 @@ If this project saved you time or helps you get the most out of your router, con
 
 - **[qosmio](https://github.com/qosmio)** — Core NSS development and the [openwrt-ipq](https://github.com/qosmio/openwrt-ipq) sources that make this possible
 - **[rodriguezst](https://github.com/rodriguezst)** — Inspiration from [ipq807x-openwrt-builder](https://github.com/rodriguezst/ipq807x-openwrt-builder)
+- **[JuliusBairaktaris](https://github.com/JuliusBairaktaris)** — Base files for the builder
 - **OpenWrt Community** — Especially the [IPQ807x NSS Build thread](https://forum.openwrt.org/t/ipq807x-nss-build/148529) (4000+ posts and counting)
 
 ---
