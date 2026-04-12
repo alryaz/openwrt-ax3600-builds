@@ -168,11 +168,11 @@ jobs:
           echo "src-git-full passwall_pkg https://github.com/${PASSWALL_PKG_REPOSITORY}" >> feeds.conf
 
           # Update and install feeds
-          ./scripts/feeds update qosmio
-          ./scripts/feeds install -a -p qosmio
-          ./scripts/feeds update sqm_nss
-          ./scripts/feeds install -a -p sqm_nss
           ./scripts/feeds update -a
+          ./scripts/feeds install -a -p qosmio
+          ./scripts/feeds install -a -p sqm_nss
+          ./scripts/feeds install -a -p passwall_pkg
+          ./scripts/feeds install -a -p passwall2
           ./scripts/feeds install -a
 
           # Configure
