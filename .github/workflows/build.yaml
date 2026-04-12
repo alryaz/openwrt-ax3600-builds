@@ -21,6 +21,8 @@ env:
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
   AMNEZIAWG_REPOSITORY: Slava-Shchipunov/awg-openwrt
   AMNEZIAWG_BRANCH: master
+  PASSWALL_PKG_REPOSITORY: Openwrt-Passwall/openwrt-passwall-packages
+  PASSWALL_PKG_BRANCH: main
   PASSWALL2_REPOSITORY: Openwrt-Passwall/openwrt-passwall2
   PASSWALL2_BRANCH: main
 
@@ -47,6 +49,7 @@ jobs:
       main_sha: ${{ steps.check.outputs.main_sha }}
       nss_sha: ${{ steps.check.outputs.nss_sha }}
       awg_sha: ${{ steps.check.outputs.awg_sha }}
+      passwall_pkg_sha: ${{ steps.check.outputs.passwall_pkg_sha }}
       passwall2_sha: ${{ steps.check.outputs.passwall2_sha }}
     steps:
       - name: Check upstream changes
@@ -59,6 +62,7 @@ jobs:
           nss_sha=$(gh api "repos/${NSS_PACKAGES_REPOSITORY}/commits/${NSS_PACKAGES_REPOSITORY_BRANCH}" --jq .sha)
           awg_sha=$(gh api "repos/${AMNEZIAWG_REPOSITORY}/commits/${AMNEZIAWG_BRANCH}" --jq .sha)
           passwall2_sha=$(gh api "repos/${PASSWALL2_REPOSITORY}/commits/${PASSWALL2_BRANCH}" --jq .sha)
+          passwall_pkg_sha=$(gh api "repos/${PASSWALL_PKG_REPOSITORY}/commits/${PASSWALL_PKG_BRANCH}" --jq .sha)
 
           # Get latest release body safely
           latest_release_body=$(gh release view --repo "${GITHUB_REPOSITORY}" --json body --jq .body 2>/dev/null || echo "")
@@ -66,6 +70,7 @@ jobs:
           # Determine if build is required
           build_required=true
           if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]] && \
+             [[ "$latest_release_body" == *"$passwall_pkg_sha"* ]] && \
              [[ "$latest_release_body" == *"$passwall2_sha"* ]] && \
              [[ "$latest_release_body" == *"$awg_sha"* ]] && \
              [[ "$latest_release_body" == *"$main_sha"* ]] && \
@@ -78,6 +83,7 @@ jobs:
           echo "NSS SHA: $nss_sha"
           echo "AmneziaWG SHA: $awg_sha"
           echo "Passwall2 SHA: $passwall2_sha"
+          echo "Passwall Packages SHA: $passwall_pkg_sha"
 
           # Output results
           echo "build_required=$build_required" >> "$GITHUB_OUTPUT"
@@ -85,6 +91,7 @@ jobs:
           echo "nss_sha=$nss_sha" >> "$GITHUB_OUTPUT"
           echo "awg_sha=$awg_sha" >> "$GITHUB_OUTPUT"
           echo "passwall2_sha=$passwall2_sha" >> "$GITHUB_OUTPUT"
+          echo "passwall_pkg_sha=$passwall_pkg_sha" >> "$GITHUB_OUTPUT"
 
   build_firmware:
     name: Build Firmware
@@ -158,6 +165,7 @@ jobs:
           echo "src-git sqm_nss https://github.com/JuliusBairaktaris/sqm-scripts-nss" >> feeds.conf
           echo "src-git amneziawg https://github.com/${AMNEZIAWG_REPOSITORY}" >> feeds.conf
           echo "src-git-full passwall2 https://github.com/${PASSWALL2_REPOSITORY}" >> feeds.conf
+          echo "src-git-full passwall_pkg https://github.com/${PASSWALL_PKG_REPOSITORY}" >> feeds.conf
 
           # Update and install feeds
           ./scripts/feeds update qosmio
@@ -177,6 +185,7 @@ jobs:
           sed -i 's/^CONFIG_FEED_sqm_nss=.*/# CONFIG_FEED_sqm_nss is not set/' .config
           sed -i 's/^CONFIG_FEED_amneziawg=.*/# CONFIG_FEED_amneziawg is not set/' .config
           sed -i 's/^CONFIG_FEED_passwall2=.*/# CONFIG_FEED_passwall2 is not set/' .config
+          sed -i 's/^CONFIG_FEED_passwall_pkg=.*/# CONFIG_FEED_passwall_pkg is not set/' .config
 
           # Add custom files
           if [ -d "../builder_repo/${CUSTOM_FILES_PATH}" ]; then
@@ -280,7 +289,8 @@ jobs:
             echo "- **Main Commit**: \`${{ needs.check_updates.outputs.main_sha }}\`"
             echo "- **NSS Commit**: \`${{ needs.check_updates.outputs.nss_sha }}\`"
             echo "- **AmneziaWG Commit**: \`${{ needs.check_updates.outputs.awg_sha }}\`"
-            echo "- **passwall2 Commit**: \`${{ needs.check_updates.outputs.passwall2_sha }}\`"
+            echo "- **Passwall2 Commit**: \`${{ needs.check_updates.outputs.passwall2_sha }}\`"
+            echo "- **Passwall Packages Commit**: \`${{ needs.check_updates.outputs.passwall_pkg_sha }}\`"
             echo "- **Trigger**: \`${{ github.event_name }}\`"
           } > release_notes.md
 
