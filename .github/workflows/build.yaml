@@ -230,6 +230,8 @@ jobs:
           path: |
             openwrt/staging_dir/host*
             openwrt/staging_dir/tool*
+            openwrt/build_dir/host*
+            openwrt/build_dir/tool*
           key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
           restore-keys: |
             ${{ runner.os }}-ax3600-toolchain-
@@ -249,6 +251,8 @@ jobs:
           path: |
             openwrt/staging_dir/host*
             openwrt/staging_dir/tool*
+            openwrt/build_dir/host*
+            openwrt/build_dir/tool*
           key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
 
       - name: Build multithreaded
@@ -302,6 +306,8 @@ jobs:
           path: |
             openwrt/staging_dir/host*
             openwrt/staging_dir/tool*
+            openwrt/build_dir/host*
+            openwrt/build_dir/tool*
           key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
   
       - name: Upload artifacts
