@@ -218,14 +218,38 @@ jobs:
             sleep 5
           done
 
-      - name: Cache toolchain build
-        continue-on-error: true
-        uses: klever1988/cachewrtbuild@main
+      - name: Get OpenWRT toolchain hash
+        id: get_toolchain_hash
+        run: |
+          echo "hash=$(git log --pretty=tformat:'%h' -n1 tools toolchain)" >> $GITHUB_OUTPUT
+
+      - name: Restore OpenWRT toolchain cache
+        id: restore_mt_tc
+        uses: actions/cache/restore@v5
         with:
-          ccache: true
-          skip: false
-          mixkey: 'ax3600'
-          prefix: 'openwrt'
+          path: |
+            openwrt/staging_dir/host*
+            openwrt/staging_dir/tool*
+          key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
+          restore-keys: |
+            ${{ runner.os }}-ax3600-toolchain-
+
+      - name: Build multithreaded (toolchain)
+        if: steps.restore_mt_tc.outputs.cache-hit != 'true'
+        id: build_mt_tc
+        working-directory: openwrt
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)" tools/compile toolchain/compile
+
+      - name: Save OpenWRT toolchain cache
+        if: steps.build_mt_tc.outcome == 'success'
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            openwrt/staging_dir/host*
+            openwrt/staging_dir/tool*
+          key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
 
       - name: Build multithreaded
         id: build_mt
@@ -271,6 +295,15 @@ jobs:
           if-no-files-found: warn
           retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
 
+      - name: Save OpenWRT toolchain cache
+        if: success()
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            openwrt/staging_dir/host*
+            openwrt/staging_dir/tool*
+          key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
+  
       - name: Upload artifacts
         if: success()
         uses: actions/upload-artifact@v7
