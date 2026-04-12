@@ -218,6 +218,15 @@ jobs:
             sleep 5
           done
 
+      - name: Cache toolchain build
+        continue-on-error: true
+        uses: klever1988/cachewrtbuild@main
+        with:
+          ccache: true
+          skip: false
+          mixkey: 'ax3600'
+          prefix: 'openwrt'
+
       - name: Build multithreaded
         id: build_mt
         working-directory: openwrt
