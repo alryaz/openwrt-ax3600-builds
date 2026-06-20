@@ -216,44 +216,6 @@ jobs:
             make download -j"$(nproc)" V=s && break
             echo "Download attempt $attempt failed, retrying..."
             sleep 5
-          done
-
-      - name: Get OpenWRT toolchain hash
-        id: get_toolchain_hash
-        run: |
-          echo "hash=$(git log --pretty=tformat:'%h' -n1 tools toolchain)" >> $GITHUB_OUTPUT
-
-      - name: Restore OpenWRT toolchain cache
-        id: restore_mt_tc
-        uses: actions/cache/restore@v5
-        with:
-          path: |
-            openwrt/staging_dir/host*
-            openwrt/staging_dir/tool*
-            openwrt/build_dir/host*
-            openwrt/build_dir/tool*
-          key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
-          restore-keys: |
-            ${{ runner.os }}-ax3600-toolchain-
-
-      - name: Build multithreaded (toolchain)
-        if: steps.restore_mt_tc.outputs.cache-hit != 'true'
-        id: build_mt_tc
-        working-directory: openwrt
-        run: |
-          set -euo pipefail
-          make -j"$(nproc)" tools/compile toolchain/compile
-
-      - name: Save OpenWRT toolchain cache
-        if: steps.build_mt_tc.outcome == 'success'
-        uses: actions/cache/save@v5
-        with:
-          path: |
-            openwrt/staging_dir/host*
-            openwrt/staging_dir/tool*
-            openwrt/build_dir/host*
-            openwrt/build_dir/tool*
-          key: ${{ runner.os }}-ax3600-toolchain-${{ steps.get_toolchain_hash.outputs.hash }}
 
       - name: Build multithreaded
         id: build_mt
