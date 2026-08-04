@@ -216,6 +216,7 @@ jobs:
             make download -j"$(nproc)" V=s && break
             echo "Download attempt $attempt failed, retrying..."
             sleep 5
+          done
 
       - name: Build multithreaded
         id: build_mt
