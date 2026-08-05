@@ -19,8 +19,8 @@ env:
   REMOTE_BRANCH: main-nss
   NSS_PACKAGES_REPOSITORY: qosmio/nss-packages
   NSS_PACKAGES_REPOSITORY_BRANCH: NSS-12.5-K6.x
-  AMNEZIAWG_REPOSITORY: Slava-Shchipunov/awg-openwrt
-  AMNEZIAWG_BRANCH: master
+  AMNEZIAWG_REPOSITORY: janeblower/awg-openwrt
+  AMNEZIAWG_BRANCH: awg-3.0
   PASSWALL_PKG_REPOSITORY: Openwrt-Passwall/openwrt-passwall-packages
   PASSWALL_PKG_BRANCH: main
   PASSWALL2_REPOSITORY: Openwrt-Passwall/openwrt-passwall2
